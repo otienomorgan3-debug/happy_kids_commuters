@@ -1,16 +1,27 @@
-# React + Vite
+# HKCS - Admin Dashboard
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+The Admin Dashboard is a web application built for school administrators to oversee the entire transportation system. It provides tools for managing students, drivers, buses, routes, and viewing real-time reports and GPS tracking.
 
-Currently, two official plugins are available:
+## Technologies Used
+- **Framework:** React + Vite
+- **Styling:** Tailwind CSS
+- **Routing:** React Router
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+## Getting Started
 
-## React Compiler
+1. **Install dependencies:**
+   ```bash
+   npm install
+   ```
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+2. **Run the development server:**
+   ```bash
+   npm run dev
+   ```
+   The dashboard will be available at `http://localhost:5173`.
 
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+## Features
+- **Live Tracking:** View all buses in real-time on a map.
+- **User Management:** Add and assign drivers to buses.
+- **Student Management:** View and manage student registrations.
+- **Reporting:** Access attendance logs and trip histories.
