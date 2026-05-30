@@ -7,6 +7,7 @@ import Dashboard from './pages/Dashboard';
 import LiveMap from './pages/LiveMap';
 import Students from './pages/Students';
 import Drivers from './pages/Drivers';
+import RoutesPage from './pages/Routes';
 import Reports from './pages/Reports';
 
 function ProtectedLayout() {
@@ -29,6 +30,7 @@ function ProtectedLayout() {
           <Route path="/map" element={<LiveMap />} />
           <Route path="/students" element={<Students />} />
           <Route path="/drivers" element={<Drivers />} />
+          <Route path="/routes" element={<RoutesPage />} />
           <Route path="/reports" element={<Reports />} />
           <Route path="*" element={<Navigate to="/dashboard" replace />} />
         </Routes>

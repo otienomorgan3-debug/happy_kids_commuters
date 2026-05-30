@@ -1,5 +1,99 @@
 const pool = require('../config/db');
 
+const AI_SERVICE_URL = process.env.AI_SERVICE_URL || 'http://localhost:8000';
+
+const normalizeStops = (stops) => {
+  if (!Array.isArray(stops)) {
+    return [];
+  }
+
+  return stops
+    .filter((stop) => stop && stop.stop_name)
+    .map((stop, index) => ({
+      stop_name: stop.stop_name,
+      location: stop.location || null,
+      latitude: stop.latitude === '' || stop.latitude === undefined ? null : Number(stop.latitude),
+      longitude: stop.longitude === '' || stop.longitude === undefined ? null : Number(stop.longitude),
+      stop_order: Number(stop.stop_order) || index + 1
+    }))
+    .sort((firstStop, secondStop) => firstStop.stop_order - secondStop.stop_order);
+};
+
+const hasCoordinates = (stops) =>
+  stops.every((stop) => Number.isFinite(stop.latitude) && Number.isFinite(stop.longitude));
+
+const formatRouteResponse = async (routeId, clientOrPool = pool) => {
+  const result = await clientOrPool.query(
+    `SELECT r.id, r.route_name, r.estimated_time,
+            COALESCE(
+              json_agg(
+                json_build_object(
+                  'id', rs.id,
+                  'stop_name', rs.stop_name,
+                  'location', rs.location,
+                  'latitude', rs.latitude,
+                  'longitude', rs.longitude,
+                  'stop_order', rs.stop_order
+                )
+                ORDER BY rs.stop_order
+              ) FILTER (WHERE rs.id IS NOT NULL),
+              '[]'
+            ) AS stops
+     FROM routes r
+     LEFT JOIN route_stops rs ON rs.route_id = r.id
+     WHERE r.id = $1
+     GROUP BY r.id`,
+    [routeId]
+  );
+
+  return result.rows[0];
+};
+
+const optimizeStopsOrder = async (stops) => {
+  if (!hasCoordinates(stops) || stops.length < 2) {
+    return stops;
+  }
+
+  const response = await fetch(`${AI_SERVICE_URL}/optimize-route`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      stops: stops.map((stop) => ({
+        id: stop.id,
+        name: stop.stop_name,
+        latitude: stop.latitude,
+        longitude: stop.longitude
+      }))
+    })
+  });
+
+  if (!response.ok) {
+    throw new Error(`AI optimization failed with status ${response.status}`);
+  }
+
+  const payload = await response.json();
+  const optimizedRoute = payload.optimized_route || [];
+
+  return optimizedRoute
+    .map((optimizedStop, index) => ({
+      ...stops.find((stop) => stop.id === optimizedStop.id) || optimizedStop,
+      stop_order: index + 1
+    }))
+    .filter(Boolean);
+};
+
+const persistOptimizedStops = async (client, routeId, stops) => {
+  await client.query('DELETE FROM route_stops WHERE route_id = $1', [routeId]);
+
+  for (const stop of stops) {
+    await client.query(
+      `INSERT INTO route_stops (route_id, stop_name, location, latitude, longitude, stop_order)
+       VALUES ($1, $2, $3, $4, $5, $6)`,
+      [routeId, stop.stop_name, stop.location, stop.latitude, stop.longitude, stop.stop_order]
+    );
+  }
+};
+
 // ─── DASHBOARD STATS ────────────────────────────────────────────
 
 const getDashboardStats = async (req, res) => {
@@ -212,34 +306,75 @@ const unassignDriver = async (req, res) => {
 // ─── ROUTE MANAGEMENT ───────────────────────────────────────────
 
 const addRoute = async (req, res) => {
-  const { route_name, estimated_time } = req.body;
+  const { route_name, estimated_time, stops = [] } = req.body;
+  const normalizedStops = normalizeStops(stops);
+  const client = await pool.connect();
 
   try {
     if (!route_name) {
       return res.status(400).json({ message: 'Route name is required' });
     }
 
-    const result = await pool.query(
+    await client.query('BEGIN');
+
+    const result = await client.query(
       `INSERT INTO routes (route_name, estimated_time)
        VALUES ($1, $2) RETURNING *`,
       [route_name, estimated_time || null]
     );
 
+    const route = result.rows[0];
+    let stopsToSave = normalizedStops;
+
+    if (normalizedStops.length > 1) {
+      try {
+        stopsToSave = await optimizeStopsOrder(normalizedStops);
+      } catch (optimizationError) {
+        console.warn('Route optimization skipped:', optimizationError.message);
+      }
+    }
+
+    await persistOptimizedStops(client, route.id, stopsToSave);
+    await client.query('COMMIT');
+
+    const routeWithStops = await formatRouteResponse(route.id);
+
     res.status(201).json({
       message: 'Route added successfully',
-      route: result.rows[0]
+      route: routeWithStops.rows[0]
     });
 
   } catch (error) {
+    await client.query('ROLLBACK').catch(() => {});
     console.error('Add route error:', error.message);
     res.status(500).json({ message: 'Server error adding route' });
+  } finally {
+    client.release();
   }
 };
 
 const getAllRoutes = async (req, res) => {
   try {
     const result = await pool.query(
-      'SELECT * FROM routes ORDER BY route_name'
+      `SELECT r.id, r.route_name, r.estimated_time,
+              COALESCE(
+                json_agg(
+                  json_build_object(
+                    'id', rs.id,
+                    'stop_name', rs.stop_name,
+                    'location', rs.location,
+                    'latitude', rs.latitude,
+                    'longitude', rs.longitude,
+                    'stop_order', rs.stop_order
+                  )
+                  ORDER BY rs.stop_order
+                ) FILTER (WHERE rs.id IS NOT NULL),
+                '[]'
+              ) AS stops
+       FROM routes r
+       LEFT JOIN route_stops rs ON rs.route_id = r.id
+       GROUP BY r.id
+       ORDER BY r.route_name`
     );
 
     res.status(200).json({ routes: result.rows });
@@ -252,27 +387,52 @@ const getAllRoutes = async (req, res) => {
 
 const updateRoute = async (req, res) => {
   const { id } = req.params;
-  const { route_name, estimated_time } = req.body;
+  const { route_name, estimated_time, stops } = req.body;
+  const normalizedStops = Array.isArray(stops) ? normalizeStops(stops) : null;
+  const client = await pool.connect();
 
   try {
-    const result = await pool.query(
+    await client.query('BEGIN');
+
+    const result = await client.query(
       `UPDATE routes SET route_name=$1, estimated_time=$2
        WHERE id=$3 RETURNING *`,
       [route_name, estimated_time, id]
     );
 
     if (result.rows.length === 0) {
+      await client.query('ROLLBACK');
       return res.status(404).json({ message: 'Route not found' });
     }
 
+    if (normalizedStops) {
+      let stopsToSave = normalizedStops;
+
+      if (normalizedStops.length > 1) {
+        try {
+          stopsToSave = await optimizeStopsOrder(normalizedStops);
+        } catch (optimizationError) {
+          console.warn('Route optimization skipped:', optimizationError.message);
+        }
+      }
+
+      await persistOptimizedStops(client, id, stopsToSave);
+    }
+
+    await client.query('COMMIT');
+    const routeWithStops = await formatRouteResponse(id);
+
     res.status(200).json({
       message: 'Route updated successfully',
-      route: result.rows[0]
+      route: routeWithStops.rows[0]
     });
 
   } catch (error) {
+    await client.query('ROLLBACK').catch(() => {});
     console.error('Update route error:', error.message);
     res.status(500).json({ message: 'Server error updating route' });
+  } finally {
+    client.release();
   }
 };
 

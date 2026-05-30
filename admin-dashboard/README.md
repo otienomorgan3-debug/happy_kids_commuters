@@ -24,4 +24,5 @@ The Admin Dashboard is a web application built for school administrators to over
 - **Live Tracking:** View all buses in real-time on a map.
 - **User Management:** Add and assign drivers to buses.
 - **Student Management:** View and manage student registrations.
+- **Route Management:** Create routes with stop coordinates, auto-optimize the order, and edit them later.
 - **Reporting:** Access attendance logs and trip histories.

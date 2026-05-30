@@ -32,4 +32,4 @@ This service is a Python-based FastAPI application responsible for route optimiz
 ## Key Components
 - `main.py` - FastAPI entry point and route definitions.
 - `route_optimizer.py` - Logic for calculating the most efficient pickup/drop-off routes.
-- `eta_predictor.py` - Machine learning or heuristic models for predicting travel times.
+- `eta_predictor.py` - Heuristics for predicting travel times and stop ETAs.

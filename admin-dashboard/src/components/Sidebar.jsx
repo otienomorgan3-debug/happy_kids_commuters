@@ -6,6 +6,7 @@ const links = [
     { to: '/map', label: '🗺️ Live Map' },
     { to: '/students', label: '👦 Students' },
     { to: '/drivers', label: '🚌 Drivers' },
+    { to: '/routes', label: '🛣️ Routes' },
     { to: '/reports', label: '📋 Reports' },
 ];
 

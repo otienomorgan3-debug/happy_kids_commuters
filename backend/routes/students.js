@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const {
+  getSchoolsForParent,
   addStudent,
   getMyStudents,
   getStudentsForDriver,
@@ -11,6 +12,7 @@ const {
 const { protect, restrictTo } = require('../middleware/authMiddleware');
 
 // Parent routes
+router.get('/schools', protect, restrictTo('parent'), getSchoolsForParent);
 router.post('/', protect, restrictTo('parent'), addStudent);
 router.get('/my', protect, restrictTo('parent'), getMyStudents);
 router.put('/:id', protect, restrictTo('parent'), updateStudent);

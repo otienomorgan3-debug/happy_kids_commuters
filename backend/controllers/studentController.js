@@ -1,5 +1,18 @@
 const pool = require('../config/db');
 
+const getSchoolsForParent = async (req, res) => {
+  try {
+    const result = await pool.query(
+      'SELECT id, school_name, address FROM schools ORDER BY school_name'
+    );
+
+    res.status(200).json({ schools: result.rows });
+  } catch (error) {
+    console.error('Get schools error:', error.message);
+    res.status(500).json({ message: 'Server error getting schools' });
+  }
+};
+
 // Add a new student (parent adds their child)
 const addStudent = async (req, res) => {
   const { name, school_id, pickup_location, dropoff_location } = req.body;
@@ -43,11 +56,27 @@ const getMyStudents = async (req, res) => {
 
   try {
     const result = await pool.query(
-      `SELECT s.id, s.name, s.pickup_location, s.dropoff_location,
-              sc.school_name
+      `WITH current_trip AS (
+         SELECT id, bus_id
+         FROM trips
+         WHERE status = 'active'
+         ORDER BY start_time DESC
+         LIMIT 1
+       )
+       SELECT s.id, s.name, s.pickup_location, s.dropoff_location,
+              sc.school_name,
+              a.boarded_at, a.dropped_at,
+              ct.id as trip_id, ct.bus_id, ct.route_id,
+              CASE 
+                WHEN a.dropped_at IS NOT NULL THEN 'dropped'
+                WHEN a.boarded_at IS NOT NULL THEN 'boarded'
+                ELSE 'waiting'
+              END as status
        FROM students s
        JOIN parents p ON s.parent_id = p.id
        LEFT JOIN schools sc ON s.school_id = sc.id
+       LEFT JOIN current_trip ct ON TRUE
+       LEFT JOIN attendance a ON a.student_id = s.id AND a.trip_id = ct.id
        WHERE p.user_id = $1`,
       [user_id]
     );
@@ -210,6 +239,7 @@ const deleteStudent = async (req, res) => {
 };
 
 module.exports = {
+  getSchoolsForParent,
   addStudent,
   getMyStudents,
   getStudentsForDriver,

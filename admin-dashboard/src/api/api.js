@@ -36,6 +36,8 @@ export const getAllStudents = () => API.get('/students/all');
 // Routes
 export const getAllRoutes = () => API.get('/admin/routes');
 export const addRoute = (data) => API.post('/admin/routes', data);
+export const updateRoute = (id, data) => API.put(`/admin/routes/${id}`, data);
+export const deleteRoute = (id) => API.delete(`/admin/routes/${id}`);
 
 // Reports
 export const getAttendanceReport = (date) => API.get(`/admin/reports/attendance?date=${date}`);

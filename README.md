@@ -192,6 +192,8 @@ npx expo start
 
 Scan the QR code with Expo Go on your phone.
 
+If you're testing on a physical device, set `EXPO_PUBLIC_API_HOST` to your computer's LAN IP before starting Expo so the app can reach the backend.
+
 ---
 
 ## Environment Variables
