@@ -2,12 +2,12 @@ import { NavLink } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
 const links = [
-    { to: '/dashboard', label: '📊 Dashboard' },
-    { to: '/map', label: '🗺️ Live Map' },
-    { to: '/students', label: '👦 Students' },
-    { to: '/drivers', label: '🚌 Drivers' },
-    { to: '/routes', label: '🛣️ Routes' },
-    { to: '/reports', label: '📋 Reports' },
+    { to: '/dashboard', label: 'Dashboard' },
+    { to: '/map', label: 'Live Map' },
+    { to: '/students', label: 'Students' },
+    { to: '/drivers', label: 'Drivers' },
+    { to: '/routes', label: 'Routes' },
+    { to: '/reports', label: 'Reports' },
 ];
 
 export default function Sidebar() {
@@ -17,7 +17,7 @@ export default function Sidebar() {
         <div className="w-64 min-h-screen bg-blue-900 text-white flex flex-col">
             {/* Logo */}
             <div className="p-6 border-b border-blue-700">
-                <h1 className="text-xl font-bold">🚌 HKCS Admin</h1>
+                <h1 className="text-xl font-bold">HKCS Admin</h1>
                 <p className="text-blue-300 text-sm mt-1">{user?.name}</p>
             </div>
 
@@ -45,7 +45,7 @@ export default function Sidebar() {
                     onClick={logout}
                     className="w-full px-4 py-2 text-sm text-blue-200 hover:text-white hover:bg-blue-800 rounded-lg transition-colors"
                 >
-                    🚪 Logout
+                    Logout
                 </button>
             </div>
         </div>

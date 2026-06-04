@@ -23,7 +23,7 @@ app.add_middleware(
     allow_headers=["*"]
 )
 
-# ─── REQUEST MODELS ─────────────────────────────────────────────
+# request models
 
 class Stop(BaseModel):
     id: int
@@ -50,7 +50,7 @@ class RouteETARequest(BaseModel):
     bus_lat: float
     bus_lng: float
 
-# ─── ROUTES ─────────────────────────────────────────────────────
+# routes
 
 @app.get("/")
 def root():

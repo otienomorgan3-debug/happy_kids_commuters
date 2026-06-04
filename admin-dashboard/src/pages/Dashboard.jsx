@@ -39,10 +39,10 @@ export default function Dashboard() {
             {/* Stats Grid */}
             {stats && (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                    <StatCard title="Total Students" value={stats.total_students} icon="👦" color="blue" />
-                    <StatCard title="Total Drivers" value={stats.total_drivers} icon="👨‍✈️" color="green" />
-                    <StatCard title="Total Buses" value={stats.total_buses} icon="🚌" color="yellow" />
-                    <StatCard title="Active Trips" value={stats.active_trips} icon="🟢" color="purple" />
+                    <StatCard title="Total Students" value={stats.total_students} color="blue" />
+                    <StatCard title="Total Drivers" value={stats.total_drivers} color="green" />
+                    <StatCard title="Total Buses" value={stats.total_buses} color="yellow" />
+                    <StatCard title="Active Trips" value={stats.active_trips} color="purple" />
                 </div>
             )}
 

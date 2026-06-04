@@ -90,7 +90,7 @@ export default function LiveMap() {
                         >
                             <Popup>
                                 <div className="text-sm">
-                                    <p className="font-bold">🚌 Bus {bus.bus_id}</p>
+                                    <p className="font-bold">Bus {bus.bus_id}</p>
                                     <p className="text-gray-600">Lat: {bus.latitude}</p>
                                     <p className="text-gray-600">Lng: {bus.longitude}</p>
                                     <p className="text-gray-500 text-xs mt-1">
