@@ -13,7 +13,7 @@ This service is a Python-based FastAPI application responsible for route optimiz
    ```bash
    python -m venv venv
    # On Windows:
-   venv\Scripts\activate
+   venv/Scripts/activate
    # On macOS/Linux:
    source venv/bin/activate
    ```

@@ -98,12 +98,13 @@ const persistOptimizedStops = async (client, routeId, stops) => {
 
 const getDashboardStats = async (req, res) => {
   try {
-    const [students, drivers, buses, activeTrips, payments] = await Promise.all([
+    const [students, drivers, buses, activeTrips, payments, outstanding] = await Promise.all([
       pool.query('SELECT COUNT(*) FROM students'),
       pool.query('SELECT COUNT(*) FROM drivers'),
       pool.query('SELECT COUNT(*) FROM buses'),
       pool.query("SELECT COUNT(*) FROM trips WHERE status = 'active'"),
-      pool.query("SELECT COALESCE(SUM(amount), 0) as total FROM payments WHERE status = 'paid'")
+      pool.query("SELECT COALESCE(SUM(amount), 0) as total FROM payments WHERE status = 'paid'"),
+      pool.query("SELECT COALESCE(SUM(outstanding_balance), 0) as total FROM students")
     ]);
 
     res.status(200).json({
@@ -112,7 +113,8 @@ const getDashboardStats = async (req, res) => {
         total_drivers: parseInt(drivers.rows[0].count),
         total_buses: parseInt(buses.rows[0].count),
         active_trips: parseInt(activeTrips.rows[0].count),
-        total_revenue: parseFloat(payments.rows[0].total)
+        total_revenue: parseFloat(payments.rows[0].total),
+        total_outstanding: parseFloat(outstanding.rows[0].total)
       }
     });
 

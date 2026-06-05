@@ -31,7 +31,7 @@ HKCS is a school transport platform for parents, drivers, and administrators. It
 4. Start the AI service:
    ```bash
    cd ai-service
-   venv\Scripts\activate
+   venv/Scripts/activate
    pip install -r requirements.txt
    uvicorn main:app --reload --port 8000
    ```
@@ -68,7 +68,8 @@ MPESA_CONSUMER_KEY=your_consumer_key
 MPESA_CONSUMER_SECRET=your_consumer_secret
 MPESA_SHORTCODE=174379
 MPESA_PASSKEY=your_passkey
-MPESA_CALLBACK_URL=https://your-domain.com/api/payments/callback
+MPESA_ENV=sandbox
+MPESA_CALLBACK_URL=https://your-domain.com/api/payments/mpesa/callback
 ```
 
 ## Project Layout

@@ -65,13 +65,19 @@ const getMyStudents = async (req, res) => {
        )
        SELECT s.id, s.name, s.pickup_location, s.dropoff_location,
               sc.school_name,
+              COALESCE(s.transport_fee, 0) as transport_fee,
+              COALESCE(s.outstanding_balance, 0) as outstanding_balance,
               a.boarded_at, a.dropped_at,
               ct.id as trip_id, ct.bus_id, ct.route_id,
               CASE 
                 WHEN a.dropped_at IS NOT NULL THEN 'dropped'
                 WHEN a.boarded_at IS NOT NULL THEN 'boarded'
                 ELSE 'waiting'
-              END as status
+              END as status,
+              CASE
+                WHEN COALESCE(s.outstanding_balance, 0) > 0 THEN 'payment_due'
+                ELSE 'cleared'
+              END as payment_status
        FROM students s
        JOIN parents p ON s.parent_id = p.id
        LEFT JOIN schools sc ON s.school_id = sc.id
@@ -158,6 +164,8 @@ const getAllStudents = async (req, res) => {
   try {
     const result = await pool.query(
       `SELECT s.id, s.name, s.pickup_location, s.dropoff_location,
+              COALESCE(s.transport_fee, 0) as transport_fee,
+              COALESCE(s.outstanding_balance, 0) as outstanding_balance,
               u.name as parent_name, u.phone as parent_phone,
               sc.school_name
        FROM students s

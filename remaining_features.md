@@ -55,14 +55,6 @@ This file tracks the features from the proposal that are still missing or only p
 - Analytics charts and graphs
 - Better route editing tools
 
-### Super Admin
-
-- School onboarding
-- Subscription management
-- System-wide analytics
-- User role management
-- Audit logs
-
 ### Smart/Advanced Features
 
 - Geofencing alerts
@@ -82,12 +74,10 @@ This file tracks the features from the proposal that are still missing or only p
 
 ## Suggested Next Build Order
 
-1. M-Pesa payments
-2. Parent transport history and pickup changes
-3. Admin payments dashboard
-4. Geofencing and offline support
-5. Driver behavior analytics
-6. Super admin features
+1. Parent transport history and pickup changes
+2. Admin payments dashboard
+3. Geofencing and offline support
+4. Driver behavior analytics
 
 ## Notes
 

@@ -10,6 +10,7 @@ const routeRoutes = require('./routes/routes');
 const studentRoutes = require('./routes/students');
 const attendanceRoutes = require('./routes/attendance');
 const notificationRoutes = require('./routes/notifications');
+const paymentRoutes = require('./routes/payments');
 const adminRoutes = require('./routes/admin');
 require('./config/db');
 
@@ -30,6 +31,7 @@ app.use('/api/routes', routeRoutes);
 app.use('/api/students', studentRoutes);
 app.use('/api/attendance', attendanceRoutes);
 app.use('/api/notifications', notificationRoutes);
+app.use('/api/payments', paymentRoutes);
 app.use('/api/admin', adminRoutes);
 app.get('/', (req, res) => res.json({ status: 'HKCS API running' }));
 

@@ -19,6 +19,16 @@ This is the core Node.js + Express backend API for the Happy Kids Commuter Syste
 2. **Environment Variables:**
    Create a `.env` file in the root of the `backend` folder. Refer to the root `README.md` for the required environment variables (e.g., `PORT`, `DB_HOST`, `DB_USER`, `JWT_SECRET`, etc.).
 
+   For M-Pesa sandbox testing, also set:
+   ```env
+   MPESA_ENV=sandbox
+   MPESA_CONSUMER_KEY=your_sandbox_consumer_key
+   MPESA_CONSUMER_SECRET=your_sandbox_consumer_secret
+   MPESA_SHORTCODE=174379
+   MPESA_PASSKEY=your_sandbox_passkey
+   MPESA_CALLBACK_URL=https://your-public-domain.com/api/payments/mpesa/callback
+   ```
+
 3. **Start the server (Development):**
    ```bash
    npm run dev
