@@ -12,6 +12,7 @@ const attendanceRoutes = require('./routes/attendance');
 const notificationRoutes = require('./routes/notifications');
 const paymentRoutes = require('./routes/payments');
 const adminRoutes = require('./routes/admin');
+const { apiLimiter, authLimiter, paymentLimiter, securityHeaders, sanitizeInput } = require('./middleware/security');
 require('./config/db');
 
 const app = express();
@@ -21,8 +22,17 @@ const io = new Server(server, { cors: { origin: '*' } });
 // Store connected users with their socket IDs
 const connectedUsers = {};
 
+// Security middleware
+app.use(securityHeaders);
+app.use(sanitizeInput);
 app.use(cors());
 app.use(express.json());
+
+// Rate limiting
+app.use('/api', apiLimiter);
+app.use('/api/auth/login', authLimiter);
+app.use('/api/auth/register', authLimiter);
+app.use('/api/payments', paymentLimiter);
 
 // Routes
 app.use('/api/auth', authRoutes);

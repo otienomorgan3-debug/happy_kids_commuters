@@ -9,6 +9,7 @@ import Students from './pages/Students';
 import Drivers from './pages/Drivers';
 import RoutesPage from './pages/Routes';
 import Reports from './pages/Reports';
+import Payments from './pages/Payments';
 
 function ProtectedLayout() {
   const { user, loading } = useAuth();
@@ -32,6 +33,7 @@ function ProtectedLayout() {
           <Route path="/drivers" element={<Drivers />} />
           <Route path="/routes" element={<RoutesPage />} />
           <Route path="/reports" element={<Reports />} />
+          <Route path="/payments" element={<Payments />} />
           <Route path="*" element={<Navigate to="/dashboard" replace />} />
         </Routes>
       </main>

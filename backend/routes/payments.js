@@ -6,13 +6,20 @@ const {
   getPaymentHistory,
   getPaymentSummary,
   getPaymentReceipt,
+  getAllPayments,
+  getPaymentStats,
 } = require('../controllers/paymentController');
 const { protect, restrictTo } = require('../middleware/authMiddleware');
 
+// Parent routes
 router.post('/mpesa/stkpush', protect, restrictTo('parent'), initiateStkPush);
 router.post('/mpesa/callback', handleMpesaCallback);
 router.get('/history', protect, restrictTo('parent'), getPaymentHistory);
 router.get('/summary', protect, restrictTo('parent'), getPaymentSummary);
 router.get('/receipts/:id', protect, restrictTo('parent'), getPaymentReceipt);
+
+// Admin routes
+router.get('/admin/payments', protect, restrictTo('admin', 'superadmin'), getAllPayments);
+router.get('/admin/payments/stats', protect, restrictTo('admin', 'superadmin'), getPaymentStats);
 
 module.exports = router;

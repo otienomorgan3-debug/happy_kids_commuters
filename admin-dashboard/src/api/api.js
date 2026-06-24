@@ -43,6 +43,10 @@ export const deleteRoute = (id) => API.delete(`/admin/routes/${id}`);
 export const getAttendanceReport = (date) => API.get(`/admin/reports/attendance?date=${date}`);
 export const getTripReport = () => API.get('/admin/reports/trips');
 
+// Payments
+export const getPayments = () => API.get('/admin/payments');
+export const getPaymentStats = () => API.get('/admin/payments/stats');
+
 // Tracking
 export const getAllBusLocations = () => API.get('/tracking/all');
 

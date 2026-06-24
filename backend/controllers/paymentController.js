@@ -349,10 +349,147 @@ const getPaymentReceipt = async (req, res) => {
   }
 };
 
+const getAllPayments = async (req, res) => {
+  try {
+    const { status, startDate, endDate, limit = 100, offset = 0 } = req.query;
+
+    let query = `
+      SELECT p.id, p.amount, p.status, p.mpesa_receipt, p.phone_number,
+             p.account_reference, p.transaction_date, p.created_at,
+             s.name as student_name,
+             u.name as parent_name, u.email as parent_email
+      FROM payments p
+      LEFT JOIN students s ON p.student_id = s.id
+      JOIN parents pr ON p.parent_id = pr.id
+      JOIN users u ON pr.user_id = u.id
+      WHERE 1=1
+    `;
+    const params = [];
+    let paramCount = 0;
+
+    if (status) {
+      paramCount++;
+      query += ` AND p.status = $${paramCount}`;
+      params.push(status);
+    }
+
+    if (startDate) {
+      paramCount++;
+      query += ` AND p.created_at >= $${paramCount}`;
+      params.push(startDate);
+    }
+
+    if (endDate) {
+      paramCount++;
+      query += ` AND p.created_at <= $${paramCount}`;
+      params.push(endDate);
+    }
+
+    paramCount++;
+    query += ` ORDER BY p.created_at DESC LIMIT $${paramCount} OFFSET $${paramCount + 1}`;
+    params.push(parseInt(limit), parseInt(offset));
+
+    const result = await pool.query(query, params);
+
+    // Get total count
+    const countQuery = `
+      SELECT COUNT(*) as total
+      FROM payments p
+      WHERE 1=1
+      ${status ? ' AND p.status = $1' : ''}
+      ${startDate ? ' AND p.created_at >= $' + (status ? '2' : '1') : ''}
+      ${endDate ? ' AND p.created_at <= $' + (status ? (startDate ? '3' : '2') : '1') : ''}
+    `;
+    const countParams = [];
+    if (status) countParams.push(status);
+    if (startDate) countParams.push(startDate);
+    if (endDate) countParams.push(endDate);
+    const countResult = await pool.query(countQuery, countParams);
+
+    res.status(200).json({
+      payments: result.rows,
+      total: parseInt(countResult.rows[0].total),
+      limit: parseInt(limit),
+      offset: parseInt(offset),
+    });
+  } catch (error) {
+    console.error('Get all payments error:', error.message);
+    res.status(500).json({ message: 'Server error getting payments' });
+  }
+};
+
+const getPaymentStats = async (req, res) => {
+  try {
+    const { startDate, endDate } = req.query;
+
+    let dateFilter = '';
+    const params = [];
+
+    if (startDate && endDate) {
+      dateFilter = 'WHERE p.created_at BETWEEN $1 AND $2';
+      params.push(startDate, endDate);
+    } else if (startDate) {
+      dateFilter = 'WHERE p.created_at >= $1';
+      params.push(startDate);
+    } else if (endDate) {
+      dateFilter = 'WHERE p.created_at <= $1';
+      params.push(endDate);
+    }
+
+    const statsQuery = `
+      SELECT
+        COUNT(*) as total_payments,
+        COUNT(*) FILTER (WHERE status = 'paid') as paid_count,
+        COUNT(*) FILTER (WHERE status = 'pending') as pending_count,
+        COUNT(*) FILTER (WHERE status = 'failed') as failed_count,
+        COALESCE(SUM(amount) FILTER (WHERE status = 'paid'), 0) as total_revenue,
+        COALESCE(SUM(amount) FILTER (WHERE status = 'pending'), 0) as pending_amount,
+        COALESCE(SUM(amount) FILTER (WHERE status = 'failed'), 0) as failed_amount
+      FROM payments p
+      ${dateFilter}
+    `;
+
+    const statsResult = await pool.query(statsQuery, params);
+
+    // Get recent payments
+    const recentQuery = `
+      SELECT p.id, p.amount, p.status, p.created_at,
+             s.name as student_name,
+             u.name as parent_name
+      FROM payments p
+      LEFT JOIN students s ON p.student_id = s.id
+      JOIN parents pr ON p.parent_id = pr.id
+      JOIN users u ON pr.user_id = u.id
+      ${dateFilter.replace('p.created_at', 'p.created_at')}
+      ORDER BY p.created_at DESC
+      LIMIT 10
+    `;
+    const recentResult = await pool.query(recentQuery, params);
+
+    res.status(200).json({
+      stats: {
+        totalPayments: parseInt(statsResult.rows[0].total_payments || 0),
+        paidCount: parseInt(statsResult.rows[0].paid_count || 0),
+        pendingCount: parseInt(statsResult.rows[0].pending_count || 0),
+        failedCount: parseInt(statsResult.rows[0].failed_count || 0),
+        totalRevenue: roundMoney(statsResult.rows[0].total_revenue || 0),
+        pendingAmount: roundMoney(statsResult.rows[0].pending_amount || 0),
+        failedAmount: roundMoney(statsResult.rows[0].failed_amount || 0),
+      },
+      recentPayments: recentResult.rows,
+    });
+  } catch (error) {
+    console.error('Get payment stats error:', error.message);
+    res.status(500).json({ message: 'Server error getting payment stats' });
+  }
+};
+
 module.exports = {
   initiateStkPush,
   handleMpesaCallback,
   getPaymentHistory,
   getPaymentSummary,
   getPaymentReceipt,
+  getAllPayments,
+  getPaymentStats,
 };

@@ -1,0 +1,78 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: hkcs_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: hkcs_db
+      POSTGRES_USER: hkcs_user
+      POSTGRES_PASSWORD: hkcs1234
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./database/migrations:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U hkcs_user -d hkcs_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Backend API
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: hkcs_backend
+    restart: unless-stopped
+    ports:
+      - "5000:5000"
+    environment:
+      - NODE_ENV=production
+      - PORT=5000
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_NAME=hkcs_db
+      - DB_USER=hkcs_user
+      - DB_PASSWORD=hkcs1234
+      - JWT_SECRET=${JWT_SECRET:-your_jwt_secret_here_change_in_production}
+      - JWT_EXPIRES_IN=21d
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - ./backend/logs:/app/logs
+
+  # AI Service
+  ai-service:
+    build:
+      context: ./ai-service
+      dockerfile: Dockerfile
+    container_name: hkcs_ai_service
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      - DATABASE_URL=postgresql://hkcs_user:hkcs1234@postgres:5432/hkcs_db
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  # Admin Dashboard (Frontend)
+  admin-dashboard:
+    build:
+      context: ./admin-dashboard
+      dockerfile: Dockerfile
+    container_name: hkcs_admin_dashboard
+    restart: unless-stopped
+    ports:
+      - "3000:80"
+    depends_on:
+      - backend
+
+volumes:
+  postgres_data:
+    driver: local

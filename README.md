@@ -1,94 +1,419 @@
 # Happy Kids Commuter System (HKCS)
 
-HKCS is a school transport platform for parents, drivers, and administrators. It covers student management, trip tracking, live bus location, route planning, attendance, and notifications.
+![Version](https://img.shields.io/badge/version-1.0.0-blue)
+![License](https://img.shields.io/badge/license-ISC-green)
 
-## What It Does
+HKCS is a comprehensive school transport management platform for parents, drivers, and administrators. It provides real-time bus tracking, student management, route optimization, attendance tracking, and secure payment processing.
 
-- Parent mobile app for child tracking and live trip updates
-- Driver app for trip start/end, GPS sharing, and attendance
-- Admin dashboard for schools, buses, routes, drivers, and students
-- Backend API for authentication, business logic, and notifications
-- AI service for route optimization and ETA support
+## Features
+
+### Core Features
+- **Real-time GPS Tracking**: Live bus location sharing via Socket.IO
+- **Student Management**: Parent-child relationship management
+- **Trip Management**: Driver trip start/end with attendance marking
+- **Route Optimization**: AI-powered route planning and ETA prediction
+- **Attendance Tracking**: Board/drop recording with timestamps
+- **Payment Integration**: M-Pesa STK Push for secure payments
+- **Notifications**: In-app and SMS notifications
+- **Emergency Alerts**: SOS button for driver emergencies
+- **Admin Dashboard**: Complete school management interface
+
+### Security Features
+- JWT-based authentication
+- Role-based access control (RBAC)
+- API rate limiting
+- Input validation and sanitization
+- XSS protection
+- Security headers
 
 ## Tech Stack
 
-- `parent-app/` and `driver-app/`: React Native + Expo
-- `admin-dashboard/`: React + Vite + Tailwind CSS
-- `backend/`: Node.js + Express + Socket.IO
-- `ai-service/`: Python + FastAPI
-- `database/`: PostgreSQL migrations
+### Backend
+- **Runtime**: Node.js
+- **Framework**: Express.js
+- **Real-time**: Socket.IO
+- **Database**: PostgreSQL with Sequelize ORM
+- **Authentication**: JWT + bcrypt
+
+### Frontend
+- **Admin Dashboard**: React + Vite + Tailwind CSS
+- **Mobile Apps**: React Native + Expo
+
+### AI Service
+- **Framework**: FastAPI
+- **Language**: Python
+- **ML**: Route optimization and ETA prediction
+
+### Infrastructure
+- **Containerization**: Docker & Docker Compose
+- **Database**: PostgreSQL 15
 
 ## Quick Start
 
-1. Install dependencies in each app folder.
-2. Set up PostgreSQL and run `database/migrations/001_initial_schema.sql`.
-3. Start the backend:
-   ```bash
-   cd backend
-   npm install
-   npm run dev
-   ```
-4. Start the AI service:
-   ```bash
-   cd ai-service
-   venv/Scripts/activate
-   pip install -r requirements.txt
-   uvicorn main:app --reload --port 8000
-   ```
-5. Start the admin dashboard:
-   ```bash
-   cd admin-dashboard
-   npm install
-   npm run dev
-   ```
-6. Start the mobile app:
-   ```bash
-   cd parent-app
-   npx expo start
-   ```
+### Prerequisites
+- Node.js 18+ and npm
+- Python 3.11+
+- PostgreSQL 15+
+- Docker & Docker Compose (optional)
 
-If you test on a physical device, set `EXPO_PUBLIC_API_HOST` to your computer's LAN IP first.
+### Option 1: Docker (Recommended)
+
+The fastest way to get started:
+
+```bash
+# Clone the repository
+git clone <repository-url>
+cd happy_kids_commuters
+
+# Copy environment file
+cp .env.example backend/.env
+
+# Edit backend/.env with your configuration
+# At minimum, change JWT_SECRET to a secure random string
+
+# Start all services
+docker-compose up -d
+
+# Run the demo script
+chmod +x scripts/demo.sh
+./scripts/demo.sh
+```
+
+Access the services:
+- Backend API: http://localhost:5000
+- AI Service: http://localhost:8000
+- Admin Dashboard: http://localhost:3000
+- PostgreSQL: localhost:5432
+
+### Option 2: Manual Setup
+
+#### 1. Database Setup
+
+```bash
+# Create PostgreSQL database
+createdb hkcs_db
+
+# Run migrations
+psql -U postgres -d hkcs_db -f database/migrations/001_initial_schema.sql
+psql -U postgres -d hkcs_db -f database/migrations/002_route_stops.sql
+psql -U postgres -d hkcs_db -f database/migrations/003_payments_and_billing.sql
+
+# Optional: Load seed data
+psql -U postgres -d hkcs_db -f database/seeds/001_initial_data.sql
+```
+
+#### 2. Backend Setup
+
+```bash
+cd backend
+
+# Install dependencies
+npm install
+
+# Copy and configure environment
+cp .env.example .env
+# Edit .env with your database credentials and JWT secret
+
+# Run database migrations (if using Sequelize CLI)
+npm run migrate
+
+# Start development server
+npm run dev
+```
+
+#### 3. AI Service Setup
+
+```bash
+cd ai-service
+
+# Create virtual environment
+python -m venv venv
+
+# Activate virtual environment
+# Windows:
+venv\Scripts\activate
+# Mac/Linux:
+source venv/bin/activate
+
+# Install dependencies
+pip install -r requirements.txt
+
+# Start server
+uvicorn main:app --reload --port 8000
+```
+
+#### 4. Admin Dashboard Setup
+
+```bash
+cd admin-dashboard
+
+# Install dependencies
+npm install
+
+# Start development server
+npm run dev
+```
+
+#### 5. Mobile Apps Setup
+
+```bash
+# Parent App
+cd parent-app
+npm install
+npx expo start
+
+# Driver App (if exists)
+cd ../driver-app
+npm install
+npx expo start
+```
 
 ## Environment Variables
 
-Create `backend/.env` with the values your setup needs:
+Create `backend/.env` based on `.env.example`:
 
 ```env
+# Required
 PORT=5000
 DB_HOST=localhost
 DB_PORT=5432
 DB_NAME=hkcs_db
 DB_USER=hkcs_user
-DB_PASSWORD=hkcs1234
-JWT_SECRET=your_jwt_secret_here
-JWT_EXPIRES_IN=21d
-AT_USERNAME=sandbox
-AT_API_KEY=your_api_key_here
-MPESA_CONSUMER_KEY=your_consumer_key
-MPESA_CONSUMER_SECRET=your_consumer_secret
+DB_PASSWORD=your_password
+JWT_SECRET=your_secure_jwt_secret_here
+
+# Optional (for payments)
+MPESA_CONSUMER_KEY=your_key
+MPESA_CONSUMER_SECRET=your_secret
 MPESA_SHORTCODE=174379
 MPESA_PASSKEY=your_passkey
 MPESA_ENV=sandbox
-MPESA_CALLBACK_URL=https://your-domain.com/api/payments/mpesa/callback
 ```
 
-## Project Layout
+See `.env.example` for all available options.
 
-- `backend/`: API, sockets, controllers, and routes
-- `admin-dashboard/`: admin web interface
-- `parent-app/`: parent mobile app
-- `driver-app/`: driver mobile app
-- `ai-service/`: route optimization service
-- `database/migrations/`: SQL schema files
+## Project Structure
 
-## More Details
+```
+happy_kids_commuters/
+├── backend/                 # Node.js API server
+│   ├── config/             # Database and app configuration
+│   ├── controllers/        # Route controllers
+│   ├── middleware/         # Auth, validation, security
+│   ├── routes/             # API route definitions
+│   ├── services/           # External integrations (M-Pesa, SMS)
+│   ├── tests/              # Jest test files
+│   ├── Dockerfile          # Backend container config
+│   └── server.js           # Entry point
+│
+├── admin-dashboard/        # React admin interface
+│   ├── src/
+│   └── Dockerfile
+│
+├── parent-app/             # React Native parent app
+├── driver-app/             # React Native driver app
+│
+├── ai-service/             # Python FastAPI service
+│   ├── route_optimizer.py
+│   ├── eta_predictor.py
+│   └── Dockerfile
+│
+├── database/               # Database schemas and seeds
+│   ├── migrations/
+│   └── seeds/
+│
+├── docs/                   # Documentation
+│   ├── API.md             # API endpoint documentation
+│   └── ARCHITECTURE.md    # System architecture
+│
+├── scripts/               # Utility scripts
+│   └── demo.sh            # Demo setup script
+│
+├── docker-compose.yml     # Docker orchestration
+└── .env.example           # Environment template
+```
 
-For app-specific setup and notes, see:
+## Documentation
 
-- `admin-dashboard/README.md`
-- `parent-app/README.md`
-- `ai-service/README.md`
+- **[API Documentation](docs/API.md)** - Complete API reference with endpoints and examples
+- **[Architecture Guide](docs/ARCHITECTURE.md)** - System design and data flow
+- **[Database Schema](database/migrations/001_initial_schema.sql)** - PostgreSQL schema
+- **[Admin Dashboard README](admin-dashboard/README.md)**
+- **[AI Service README](ai-service/README.md)**
+
+## Testing
+
+### Run All Tests
+
+```bash
+cd backend
+npm test
+```
+
+### Run Specific Tests
+
+```bash
+# Auth tests only
+npm run test:auth
+
+# Tracking tests only
+npm run test:tracking
+
+# Watch mode
+npm run test:watch
+```
+
+### Test Coverage
+
+The test suite covers:
+- User registration and login
+- Authentication middleware
+- Trip management (start/end)
+- Attendance marking
+- Role-based access control
+
+## Development
+
+### Available Scripts
+
+```bash
+# Backend
+npm run dev          # Start with nodemon (auto-reload)
+npm start            # Start production server
+npm test             # Run tests with coverage
+npm run test:watch   # Run tests in watch mode
+
+# Database
+npm run migrate      # Run Sequelize migrations
+npm run seed         # Seed database with sample data
+```
+
+### Code Style
+
+- Use ESLint configuration provided in each package
+- Follow existing code patterns
+- Write tests for new features
+
+## Deployment
+
+### Using Docker
+
+```bash
+# Production build
+docker-compose -f docker-compose.yml up -d
+
+# View logs
+docker-compose logs -f
+
+# Stop services
+docker-compose down
+
+# Reset everything (including database)
+docker-compose down -v
+```
+
+### Manual Deployment
+
+1. Set `NODE_ENV=production` in environment
+2. Run `npm install --production` in backend
+3. Build admin dashboard: `npm run build` in admin-dashboard
+4. Use a process manager like PM2 for the backend
+5. Set up Nginx as reverse proxy
+6. Configure SSL/TLS certificates
+
+## Security
+
+### Implemented Security Measures
+
+- **Authentication**: JWT tokens with bcrypt password hashing
+- **Rate Limiting**: 
+  - General API: 100 requests/15min
+  - Auth endpoints: 5 attempts/15min
+  - Payment endpoints: 3 requests/min
+- **Input Validation**: express-validator for all inputs
+- **XSS Protection**: Input sanitization and security headers
+- **CORS**: Configurable allowed origins
+- **SQL Injection**: Prevented via Sequelize ORM
+
+### Security Best Practices
+
+1. **Never commit `.env` files** - Use `.env.example` as template
+2. **Use strong JWT secrets** - Minimum 32 characters, random
+3. **Enable HTTPS** in production
+4. **Regularly update dependencies** - Check for security patches
+5. **Rotate credentials** periodically
+6. **Monitor logs** for suspicious activity
+
+## Troubleshooting
+
+### Port Already in Use
+
+```bash
+# Change ports in docker-compose.yml or .env file
+# Default ports: 5000 (backend), 8000 (AI), 3000 (admin), 5432 (DB)
+```
+
+### Database Connection Issues
+
+```bash
+# Ensure PostgreSQL is running
+# Check credentials in .env match docker-compose.yml
+# For Docker: use 'postgres' as DB_HOST, not 'localhost'
+```
+
+### Socket.IO Connection Failed
+
+```bash
+# Check CORS settings in server.js
+# Ensure client is connecting to correct port
+# Verify no firewall blocking WebSocket connections
+```
+
+## Contributing
+
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Add tests for new functionality
+5. Ensure all tests pass
+6. Submit a pull request
+
+## Roadmap
+
+### Phase 1 (Current) ✅
+- [x] Core authentication and authorization
+- [x] Real-time GPS tracking
+- [x] Basic student and trip management
+- [x] Docker deployment setup
+- [x] Comprehensive documentation
+- [x] Basic test coverage
+- [x] Security middleware
+
+### Phase 2 (Next)
+- [ ] Parent transport history
+- [ ] Admin payments dashboard
+- [ ] Geofencing alerts
+- [ ] Offline support
+- [ ] Advanced analytics
+
+### Phase 3 (Future)
+- [ ] Driver behavior monitoring
+- [ ] Predictive ETA improvements
+- [ ] Advanced route recommendations
+- [ ] Multi-school support
+- [ ] Mobile app stores deployment
 
 ## License
 
-This project is for internal/product use unless a license is added.
+ISC
+
+## Support
+
+For issues and questions:
+- Check the [documentation](docs/)
+- Review [API reference](docs/API.md)
+- Open an issue in the repository
+
+---
+
+**Built with ❤️ for safer school commutes**
