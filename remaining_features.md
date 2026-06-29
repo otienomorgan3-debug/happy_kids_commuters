@@ -37,7 +37,7 @@ This file tracks the features from the proposal that are still missing or only p
 - ✅ Change pickup point
 - ✅ Mark child absent
 - ✅ Transport history page
-- Better payment/fee screens
+- ✅ Better payment/fee screens (dedicated payments page with summary, history, M-Pesa integration)
 
 ### Driver App
 
