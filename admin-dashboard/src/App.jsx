@@ -6,10 +6,16 @@ import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import LiveMap from './pages/LiveMap';
 import Students from './pages/Students';
+import Parents from './pages/Parents';
 import Drivers from './pages/Drivers';
 import RoutesPage from './pages/Routes';
 import Reports from './pages/Reports';
 import Payments from './pages/Payments';
+import Analytics from './pages/Analytics';
+import Incidents from './pages/Incidents';
+import FinancialReports from './pages/FinancialReports';
+import Geofences from './pages/Geofences';
+import DriverBehavior from './pages/DriverBehavior';
 
 function ProtectedLayout() {
   const { user, loading } = useAuth();
@@ -34,6 +40,12 @@ function ProtectedLayout() {
           <Route path="/routes" element={<RoutesPage />} />
           <Route path="/reports" element={<Reports />} />
           <Route path="/payments" element={<Payments />} />
+          <Route path="/parents" element={<Parents />} />
+          <Route path="/analytics" element={<Analytics />} />
+          <Route path="/incidents" element={<Incidents />} />
+          <Route path="/financial-reports" element={<FinancialReports />} />
+          <Route path="/geofences" element={<Geofences />} />
+          <Route path="/driver-behavior" element={<DriverBehavior />} />
           <Route path="*" element={<Navigate to="/dashboard" replace />} />
         </Routes>
       </main>

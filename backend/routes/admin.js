@@ -6,38 +6,64 @@ const {
   getAllDrivers, assignDriverToBus, unassignDriver,
   addRoute, getAllRoutes, updateRoute, deleteRoute,
   addSchool, getAllSchools,
-  getAttendanceReport, getTripReport
+  getAttendanceReport, getTripReport,
+  getAnalytics, getAttendanceTrends,
+  getAllParents, getParentDetails, updateParentStatus,
+  getFinancialReport,
+  getIncidents, updateIncidentStatus, getIncidentStats,
+  getAllPaymentsAdmin, getPaymentStatsAdmin,
 } = require('../controllers/adminController');
 const { protect, restrictTo } = require('../middleware/authMiddleware');
 
-const adminOnly = [protect, restrictTo('admin', 'superadmin')];
+router.use(protect, restrictTo('admin', 'superadmin'));
 
 // Dashboard
-router.get('/stats', ...adminOnly, getDashboardStats);
+router.get('/stats', getDashboardStats);
+
+// Analytics
+router.get('/analytics', getAnalytics);
+router.get('/analytics/attendance-trends', getAttendanceTrends);
+
+// Parent management
+router.get('/parents', getAllParents);
+router.get('/parents/:id', getParentDetails);
+router.put('/parents/:id/status', updateParentStatus);
+
+// Financial reports
+router.get('/financial-report', getFinancialReport);
+
+// Incident management
+router.get('/incidents', getIncidents);
+router.get('/incidents/stats', getIncidentStats);
+router.put('/incidents/:id/status', updateIncidentStatus);
 
 // Bus management
-router.post('/buses', ...adminOnly, addBus);
-router.get('/buses', ...adminOnly, getAllBuses);
-router.put('/buses/:id', ...adminOnly, updateBus);
-router.delete('/buses/:id', ...adminOnly, deleteBus);
+router.get('/buses', getAllBuses);
+router.post('/buses', addBus);
+router.put('/buses/:id', updateBus);
+router.delete('/buses/:id', deleteBus);
 
 // Driver management
-router.get('/drivers', ...adminOnly, getAllDrivers);
-router.post('/drivers/assign', ...adminOnly, assignDriverToBus);
-router.put('/drivers/:driver_id/unassign', ...adminOnly, unassignDriver);
+router.get('/drivers', getAllDrivers);
+router.post('/drivers/assign', assignDriverToBus);
+router.put('/drivers/:driver_id/unassign', unassignDriver);
 
 // Route management
-router.post('/routes', ...adminOnly, addRoute);
-router.get('/routes', ...adminOnly, getAllRoutes);
-router.put('/routes/:id', ...adminOnly, updateRoute);
-router.delete('/routes/:id', ...adminOnly, deleteRoute);
+router.get('/routes', getAllRoutes);
+router.post('/routes', addRoute);
+router.put('/routes/:id', updateRoute);
+router.delete('/routes/:id', deleteRoute);
 
-// School management
-router.post('/schools', ...adminOnly, addSchool);
-router.get('/schools', ...adminOnly, getAllSchools);
+// Schools
+router.get('/schools', getAllSchools);
+router.post('/schools', addSchool);
 
 // Reports
-router.get('/reports/attendance', ...adminOnly, getAttendanceReport);
-router.get('/reports/trips', ...adminOnly, getTripReport);
+router.get('/reports/attendance', getAttendanceReport);
+router.get('/reports/trips', getTripReport);
+
+// Payments
+router.get('/payments', getAllPaymentsAdmin);
+router.get('/payments/stats', getPaymentStatsAdmin);
 
 module.exports = router;

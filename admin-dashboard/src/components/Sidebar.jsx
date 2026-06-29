@@ -5,9 +5,15 @@ const links = [
     { to: '/dashboard', label: 'Dashboard' },
     { to: '/map', label: 'Live Map' },
     { to: '/students', label: 'Students' },
+    { to: '/parents', label: 'Parents' },
     { to: '/drivers', label: 'Drivers' },
     { to: '/routes', label: 'Routes' },
     { to: '/payments', label: 'Payments' },
+    { to: '/financial-reports', label: 'Financial Reports' },
+    { to: '/incidents', label: 'Incidents' },
+    { to: '/analytics', label: 'Analytics' },
+    { to: '/geofences', label: 'Geofencing' },
+    { to: '/driver-behavior', label: 'Driver Behavior' },
     { to: '/reports', label: 'Reports' },
 ];
 

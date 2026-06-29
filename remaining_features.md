@@ -33,37 +33,37 @@ This file tracks the features from the proposal that are still missing or only p
 
 ### Parent App
 
-- Parent chat with driver/admin
-- Change pickup point
-- Mark child absent
-- Transport history page
+- ✅ Parent chat with driver/admin
+- ✅ Change pickup point
+- ✅ Mark child absent
+- ✅ Transport history page
 - Better payment/fee screens
 
 ### Driver App
 
-- Navigation assistance
-- Route guidance screen
-- Pickup/drop confirmation improvements
-- Emergency SOS workflow polishing
+- ✅ Navigation assistance with route guidance screen
+- ✅ Route guidance screen with stop-by-stop directions and ETA
+- ✅ Pickup/drop confirmation with student details and parent contact
+- ✅ Emergency SOS with cancel workflow, history, and bus/trip context
 
 ### Admin Dashboard
 
-- Parent management module
-- Payments module
-- Financial reports
-- Incident management module
-- Analytics charts and graphs
-- Better route editing tools
+- ✅ Parent management module (list, search, detail view with children/payments)
+- ✅ Payments module (existing enhanced with admin API)
+- ✅ Financial reports (period filters, daily breakdown, outstanding debt)
+- ✅ Incident management module (SOS alerts, stats, status updates)
+- ✅ Analytics charts and graphs (weekly trips, bus utilization, attendance rates, payment trends)
+- ✅ Better route editing tools (AI-optimized stop ordering, coordinate validation)
 
 ### Smart/Advanced Features
 
-- Geofencing alerts
-- Offline support with local caching
-- Driver behavior monitoring
+- ✅ Geofencing alerts (virtual zones, enter/exit alerts, school zones, restricted areas)
+- ✅ Offline support with local caching (sync queue, pending actions, retry mechanism)
+- ✅ Driver behavior monitoring (speeding, harsh braking, acceleration, idle time, route deviations, scoring)
 - Traffic learning / predictive ETA improvements
 - Advanced route recommendations
 
-### Security / Deployment
+### Security / Deployment 
 
 - API rate limiting
 - Audit logging
