@@ -3,7 +3,7 @@ const router = express.Router();
 const {
   getDashboardStats,
   addBus, getAllBuses, updateBus, deleteBus,
-  getAllDrivers, assignDriverToBus, unassignDriver,
+  getAllDrivers, assignDriverToBus, unassignDriver, addDriver,
   addRoute, getAllRoutes, updateRoute, deleteRoute,
   addSchool, getAllSchools,
   getAttendanceReport, getTripReport,
@@ -45,6 +45,7 @@ router.delete('/buses/:id', deleteBus);
 
 // Driver management
 router.get('/drivers', getAllDrivers);
+router.post('/drivers', addDriver);
 router.post('/drivers/assign', assignDriverToBus);
 router.put('/drivers/:driver_id/unassign', unassignDriver);
 

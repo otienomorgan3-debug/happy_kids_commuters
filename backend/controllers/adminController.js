@@ -483,6 +483,50 @@ const unassignDriver = async (req, res) => {
   }
 };
 
+const addDriver = async (req, res) => {
+  const { name, email, phone, license_number, password } = req.body;
+  const defaultPassword = password || 'driver123';
+  try {
+    if (!name || !email || !phone || !license_number) {
+      return res.status(400).json({ message: 'Name, email, phone, and license number are required' });
+    }
+    const existingUser = await pool.query('SELECT id FROM users WHERE email = $1 OR phone = $2', [email, phone]);
+    if (existingUser.rows.length > 0) {
+      return res.status(400).json({ message: 'User with this email or phone already exists' });
+    }
+    const existingLicense = await pool.query('SELECT id FROM drivers WHERE license_number = $1', [license_number]);
+    if (existingLicense.rows.length > 0) {
+      return res.status(400).json({ message: 'Driver with this license number already exists' });
+    }
+    const bcrypt = require('bcryptjs');
+    const hashedPassword = await bcrypt.hash(defaultPassword, 10);
+    const userResult = await pool.query(
+      `INSERT INTO users (role, name, email, phone, password_hash) VALUES ($1, $2, $3, $4, $5) RETURNING id`,
+      ['driver', name, email, phone, hashedPassword]
+    );
+    const user_id = userResult.rows[0].id;
+    const driverResult = await pool.query(
+      `INSERT INTO drivers (user_id, license_number) VALUES ($1, $2) RETURNING *`,
+      [user_id, license_number]
+    );
+    res.status(201).json({
+      message: 'Driver added successfully',
+      driver: {
+        id: driverResult.rows[0].id,
+        user_id,
+        name,
+        email,
+        phone,
+        license_number,
+        default_password: defaultPassword
+      }
+    });
+  } catch (error) {
+    console.error('Add driver error:', error.message);
+    res.status(500).json({ message: 'Server error adding driver' });
+  }
+};
+
 // ─── ROUTE MANAGEMENT ───────────────────────────────────────────
 
 const addRoute = async (req, res) => {
@@ -672,7 +716,7 @@ const getPaymentStatsAdmin = async (req, res) => {
 module.exports = {
   getDashboardStats,
   addBus, getAllBuses, updateBus, deleteBus,
-  getAllDrivers, assignDriverToBus, unassignDriver,
+  getAllDrivers, assignDriverToBus, unassignDriver, addDriver,
   addRoute, getAllRoutes, updateRoute, deleteRoute,
   addSchool, getAllSchools,
   getAttendanceReport, getTripReport,

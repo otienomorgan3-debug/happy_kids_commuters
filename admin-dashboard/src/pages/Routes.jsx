@@ -5,8 +5,6 @@ import { addRoute, deleteRoute, getAllRoutes, updateRoute } from '../api/api';
 const createStop = (order = 1) => ({
     stop_name: '',
     location: '',
-    latitude: '',
-    longitude: '',
     stop_order: order,
 });
 
@@ -22,8 +20,6 @@ const normalizeStops = (stops) =>
         .map((stop, index) => ({
             stop_name: stop.stop_name.trim(),
             location: stop.location.trim(),
-            latitude: stop.latitude === '' ? null : Number(stop.latitude),
-            longitude: stop.longitude === '' ? null : Number(stop.longitude),
             stop_order: Number(stop.stop_order) || index + 1,
         }))
         .sort((firstStop, secondStop) => firstStop.stop_order - secondStop.stop_order);
@@ -91,9 +87,6 @@ export default function Routes() {
         const stops = normalizeStops(form.stops);
         if (stops.length === 0) {
             return toast.error('Add at least one stop');
-        }
-        if (stops.some(stop => !Number.isFinite(stop.latitude) || !Number.isFinite(stop.longitude))) {
-            return toast.error('Every stop needs latitude and longitude for AI optimization');
         }
 
         const payload = {
@@ -171,9 +164,9 @@ export default function Routes() {
                         <h3 className="font-semibold text-gray-800">
                             {editingId ? 'Edit Route' : 'Create Route'}
                         </h3>
-                        <span className="text-xs text-gray-500">
-                            Add coordinates so AI can optimize the stop order
-                        </span>
+                    <span className="text-xs text-gray-500">
+                        Add stops in the order they should be visited
+                    </span>
                         {editingId && (
                             <button
                                 type="button"
@@ -235,7 +228,7 @@ export default function Routes() {
                                     )}
                                 </div>
 
-                                <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                                     <input
                                         type="number"
                                         min="1"
@@ -256,23 +249,7 @@ export default function Routes() {
                                         value={stop.location}
                                         onChange={e => handleStopChange(index, 'location', e.target.value)}
                                         className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                        placeholder="Location details"
-                                    />
-                                    <input
-                                        type="number"
-                                        step="any"
-                                        value={stop.latitude}
-                                        onChange={e => handleStopChange(index, 'latitude', e.target.value)}
-                                        className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                        placeholder="Latitude"
-                                    />
-                                    <input
-                                        type="number"
-                                        step="any"
-                                        value={stop.longitude}
-                                        onChange={e => handleStopChange(index, 'longitude', e.target.value)}
-                                        className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                        placeholder="Longitude"
+                                        placeholder="Location details (optional)"
                                     />
                                 </div>
                             </div>
@@ -339,13 +316,9 @@ export default function Routes() {
                                                 </div>
                                                 <div className="text-sm font-medium text-gray-800">{stop.stop_name}</div>
                                                 <div className="text-xs text-gray-500">{stop.location || 'No location details'}</div>
-                                                <div className="text-xs text-gray-400">
-                                                    {stop.latitude && stop.longitude
-                                                        ? `${Number(stop.latitude).toFixed(4)}, ${Number(stop.longitude).toFixed(4)}`
-                                                        : 'No coordinates'}
-                                                </div>
                                             </div>
-                                        )) : (
+                                        ))
+                                        : (
                                         <div className="text-sm text-gray-400">No stops added</div>
                                     )}
                                 </div>

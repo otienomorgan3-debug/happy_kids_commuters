@@ -44,6 +44,7 @@ export const deleteBus = (id) => API.delete(`/admin/buses/${id}`);
 
 // Drivers
 export const getAllDrivers = () => API.get('/admin/drivers');
+export const addDriver = (data) => API.post('/admin/drivers', data);
 export const assignDriver = (data) => API.post('/admin/drivers/assign', data);
 export const unassignDriver = (id) => API.put(`/admin/drivers/${id}/unassign`);
 

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { getAllDrivers, getAllBuses, assignDriver, unassignDriver } from '../api/api';
+import { getAllDrivers, getAllBuses, assignDriver, unassignDriver, addDriver } from '../api/api';
 import toast from 'react-hot-toast';
 
 export default function Drivers() {
@@ -8,6 +8,15 @@ export default function Drivers() {
     const [loading, setLoading] = useState(true);
     const [assigning, setAssigning] = useState(null);
     const [selectedBus, setSelectedBus] = useState('');
+    const [showAddForm, setShowAddForm] = useState(false);
+    const [saving, setSaving] = useState(false);
+    const [form, setForm] = useState({
+        name: '',
+        email: '',
+        phone: '',
+        license_number: '',
+        password: ''
+    });
 
     const fetchData = async () => {
         try {
@@ -49,12 +58,106 @@ export default function Drivers() {
         }
     };
 
+    const handleAddDriver = async (e) => {
+        e.preventDefault();
+        setSaving(true);
+        try {
+            const res = await addDriver(form);
+            toast.success(`Driver added! Default password: ${res.data.driver.default_password}`);
+            setShowAddForm(false);
+            setForm({ name: '', email: '', phone: '', license_number: '', password: '' });
+            fetchData();
+        } catch (err) {
+            toast.error(err.response?.data?.message || 'Failed to add driver');
+        } finally {
+            setSaving(false);
+        }
+    };
+
     return (
         <div className="p-6 space-y-4">
             <div className="flex items-center justify-between">
                 <h2 className="text-2xl font-bold text-gray-800">Drivers</h2>
-                <span className="text-sm text-gray-500">{drivers.length} total</span>
+                <div className="flex items-center gap-3">
+                    <span className="text-sm text-gray-500">{drivers.length} total</span>
+                    <button
+                        onClick={() => setShowAddForm(!showAddForm)}
+                        className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-700"
+                    >
+                        {showAddForm ? 'Cancel' : '+ Add Driver'}
+                    </button>
+                </div>
             </div>
+
+            {showAddForm && (
+                <form onSubmit={handleAddDriver} className="bg-white rounded-xl border border-gray-200 p-6 space-y-4">
+                    <h3 className="font-semibold text-gray-800">Add New Driver</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">Full Name *</label>
+                            <input
+                                type="text"
+                                required
+                                value={form.name}
+                                onChange={e => setForm(prev => ({ ...prev, name: e.target.value }))}
+                                className="w-full border border-gray-300 rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                placeholder="John Doe"
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">Email *</label>
+                            <input
+                                type="email"
+                                required
+                                value={form.email}
+                                onChange={e => setForm(prev => ({ ...prev, email: e.target.value }))}
+                                className="w-full border border-gray-300 rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                placeholder="driver@example.com"
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">Phone *</label>
+                            <input
+                                type="tel"
+                                required
+                                value={form.phone}
+                                onChange={e => setForm(prev => ({ ...prev, phone: e.target.value }))}
+                                className="w-full border border-gray-300 rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                placeholder="0712345678"
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">License Number *</label>
+                            <input
+                                type="text"
+                                required
+                                value={form.license_number}
+                                onChange={e => setForm(prev => ({ ...prev, license_number: e.target.value }))}
+                                className="w-full border border-gray-300 rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                placeholder="DL12345678"
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">Password (optional)</label>
+                            <input
+                                type="text"
+                                value={form.password}
+                                onChange={e => setForm(prev => ({ ...prev, password: e.target.value }))}
+                                className="w-full border border-gray-300 rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                placeholder="Leave empty for default: driver123"
+                            />
+                            <p className="text-xs text-gray-500 mt-1">Default password will be 'driver123' if not provided</p>
+                        </div>
+                    </div>
+                    <button
+                        type="submit"
+                        disabled={saving}
+                        className="bg-green-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-green-700 disabled:opacity-50"
+                    >
+                        {saving ? 'Adding Driver...' : 'Add Driver'}
+                    </button>
+                </form>
+            )}
 
             <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
                 <div className="overflow-x-auto">

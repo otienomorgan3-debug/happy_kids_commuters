@@ -50,120 +50,38 @@ HKCS is a comprehensive school transport management platform for parents, driver
 
 ## Quick Start
 
-### Prerequisites
-- Node.js 18+ and npm
-- Python 3.11+
-- PostgreSQL 15+
-- Docker & Docker Compose (optional)
-
-### Option 1: Docker (Recommended)
-
-The fastest way to get started:
-
 ```bash
-# Clone the repository
-git clone <repository-url>
-cd happy_kids_commuters
+# 1. Clone repository
+git clone https://github.com/donnellyCodes/happy_kids_commuter_system.git
+cd happy_kids_commuter_system
 
-# Copy environment file
-cp .env.example backend/.env
-
-# Edit backend/.env with your configuration
-# At minimum, change JWT_SECRET to a secure random string
-
-# Start all services
-docker-compose up -d
-
-# Run the demo script
-chmod +x scripts/demo.sh
-./scripts/demo.sh
-```
-
-Access the services:
-- Backend API: http://localhost:5000
-- AI Service: http://localhost:8000
-- Admin Dashboard: http://localhost:3000
-- PostgreSQL: localhost:5432
-
-### Option 2: Manual Setup
-
-#### 1. Database Setup
-
-```bash
-# Create PostgreSQL database
-createdb hkcs_db
-
-# Run migrations
+# 2. Setup database
+psql -U postgres -c "CREATE DATABASE hkcs_db;"
 psql -U postgres -d hkcs_db -f database/migrations/001_initial_schema.sql
 psql -U postgres -d hkcs_db -f database/migrations/002_route_stops.sql
 psql -U postgres -d hkcs_db -f database/migrations/003_payments_and_billing.sql
+psql -U postgres -d hkcs_db -f database/migrations/004_chat_and_parent_actions.sql
+psql -U postgres -d hkcs_db -f database/migrations/005_advanced_features.sql
 
-# Optional: Load seed data
-psql -U postgres -d hkcs_db -f database/seeds/001_initial_data.sql
-```
-
-#### 2. Backend Setup
-
-```bash
+# 3. Setup backend
 cd backend
-
-# Install dependencies
 npm install
-
-# Copy and configure environment
 cp .env.example .env
-# Edit .env with your database credentials and JWT secret
-
-# Run database migrations (if using Sequelize CLI)
-npm run migrate
-
-# Start development server
+# Edit .env with your database credentials
 npm run dev
-```
 
-#### 3. AI Service Setup
-
-```bash
+# 4. Setup AI service (optional - backend falls back if unavailable)
 cd ai-service
-
-# Create virtual environment
-python -m venv venv
-
-# Activate virtual environment
-# Windows:
-venv\Scripts\activate
-# Mac/Linux:
-source venv/bin/activate
-
-# Install dependencies
 pip install -r requirements.txt
+python -m uvicorn main:app --host 0.0.0.0 --port 8000
 
-# Start server
-uvicorn main:app --reload --port 8000
-```
-
-#### 4. Admin Dashboard Setup
-
-```bash
+# 5. Setup admin dashboard
 cd admin-dashboard
-
-# Install dependencies
 npm install
-
-# Start development server
 npm run dev
-```
 
-#### 5. Mobile Apps Setup
-
-```bash
-# Parent App
+# 6. Setup parent app
 cd parent-app
-npm install
-npx expo start
-
-# Driver App (if exists)
-cd ../driver-app
 npm install
 npx expo start
 ```
