@@ -296,31 +296,6 @@ docker-compose down -v
 5. Ensure all tests pass
 6. Submit a pull request
 
-## Roadmap
-
-### Phase 1 (Current) ✅
-- [x] Core authentication and authorization
-- [x] Real-time GPS tracking
-- [x] Basic student and trip management
-- [x] Docker deployment setup
-- [x] Comprehensive documentation
-- [x] Basic test coverage
-- [x] Security middleware
-
-### Phase 2 (Next)
-- [ ] Parent transport history
-- [ ] Admin payments dashboard
-- [ ] Geofencing alerts
-- [ ] Offline support
-- [ ] Advanced analytics
-
-### Phase 3 (Future)
-- [ ] Driver behavior monitoring
-- [ ] Predictive ETA improvements
-- [ ] Advanced route recommendations
-- [ ] Multi-school support
-- [ ] Mobile app stores deployment
-
 ## License
 
 ISC
