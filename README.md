@@ -1,312 +1,183 @@
 # Happy Kids Commuter System (HKCS)
 
-![Version](https://img.shields.io/badge/version-1.0.0-blue)
-![License](https://img.shields.io/badge/license-ISC-green)
+> A comprehensive school transport management platform connecting parents, drivers, and administrators with real-time tracking, payments, and communication.
 
-HKCS is a comprehensive school transport management platform for parents, drivers, and administrators. It provides real-time bus tracking, student management, route optimization, attendance tracking, and secure payment processing.
+---
 
-## Features
+## Overview
 
-### Core Features
-- **Real-time GPS Tracking**: Live bus location sharing via Socket.IO
-- **Student Management**: Parent-child relationship management
-- **Trip Management**: Driver trip start/end with attendance marking
-- **Route Optimization**: AI-powered route planning and ETA prediction
-- **Attendance Tracking**: Board/drop recording with timestamps
-- **Payment Integration**: M-Pesa STK Push for secure payments
-- **Notifications**: In-app and SMS notifications
-- **Emergency Alerts**: SOS button for driver emergencies
-- **Admin Dashboard**: Complete school management interface
+HKCS is a full-stack platform that simplifies school commute management. Parents can track their child's bus in real time, make M-Pesa payments, request absences or pickup changes, and chat with drivers. Drivers get route guidance, attendance tools, and an SOS emergency button. Administrators manage everything from a central dashboard — students, drivers, buses, routes, payments, and analytics.
 
-### Security Features
-- JWT-based authentication
-- Role-based access control (RBAC)
-- API rate limiting
-- Input validation and sanitization
-- XSS protection
-- Security headers
+**Who it's for:** Schools, transport operators, parents, and school bus drivers.
 
-## Tech Stack
+---
 
-### Backend
-- **Runtime**: Node.js
-- **Framework**: Express.js
-- **Real-time**: Socket.IO
-- **Database**: PostgreSQL with Sequelize ORM
-- **Authentication**: JWT + bcrypt
+## Demo
 
-### Frontend
-- **Admin Dashboard**: React + Vite + Tailwind CSS
-- **Mobile Apps**: React Native + Expo
+<!-- Add a GIF, screenshot, or link to a live demo here -->
+<!-- Example: ![HKCS Dashboard](docs/screenshots/dashboard.png) -->
 
-### AI Service
-- **Framework**: FastAPI
-- **Language**: Python
-- **ML**: Route optimization and ETA prediction
+> **Coming soon** — screenshots and live demo link.
 
-### Infrastructure
-- **Containerization**: Docker & Docker Compose
-- **Database**: PostgreSQL 15
+---
 
-## Quick Start
+## Installation
+
+### Prerequisites
+
+- [Node.js](https://nodejs.org/) v18+
+- [Python](https://python.org/) 3.10+
+- [PostgreSQL](https://www.postgresql.org/) 15+
+- [Docker Desktop](https://www.docker.com/products/docker-desktop/) (optional but recommended)
+- [Git](https://git-scm.com/)
+
+### Quick Start (Docker)
 
 ```bash
-# 1. Clone repository
+# 1. Clone the repo
 git clone https://github.com/donnellyCodes/happy_kids_commuter_system.git
 cd happy_kids_commuter_system
 
-# 2. Setup database
-psql -U postgres -c "CREATE DATABASE hkcs_db;"
-psql -U postgres -d hkcs_db -f database/migrations/001_initial_schema.sql
-psql -U postgres -d hkcs_db -f database/migrations/002_route_stops.sql
-psql -U postgres -d hkcs_db -f database/migrations/003_payments_and_billing.sql
-psql -U postgres -d hkcs_db -f database/migrations/004_chat_and_parent_actions.sql
-psql -U postgres -d hkcs_db -f database/migrations/005_advanced_features.sql
+# 2. Start everything
+docker compose up -d --build
+```
 
-# 3. Setup backend
+### Manual Setup
+
+See the full **[Setup Guide →](docs/setup.md)** for step-by-step instructions covering:
+
+- Database creation and schema migration
+- Backend environment configuration
+- AI service setup
+- Admin dashboard and mobile app startup
+
+---
+
+## Usage
+
+### Start the Backend
+
+```bash
 cd backend
 npm install
-cp .env.example .env
-# Edit .env with your database credentials
-npm run dev
+cp .env.example .env   # Edit with your database credentials
+npm run dev            # Development (auto-reload)
+```
 
-# 4. Setup AI service (optional - backend falls back if unavailable)
-cd ai-service
-pip install -r requirements.txt
-python -m uvicorn main:app --host 0.0.0.0 --port 8000
+### Start the Admin Dashboard
 
-# 5. Setup admin dashboard
+```bash
 cd admin-dashboard
 npm install
 npm run dev
+```
 
-# 6. Setup parent app
+### Start the Parent Mobile App
+
+```bash
 cd parent-app
 npm install
 npx expo start
 ```
 
-## Environment Variables
-
-Create `backend/.env` based on `.env.example`:
-
-```env
-# Required
-PORT=5000
-DB_HOST=localhost
-DB_PORT=5432
-DB_NAME=hkcs_db
-DB_USER=hkcs_user
-DB_PASSWORD=your_password
-JWT_SECRET=your_secure_jwt_secret_here
-
-# Optional (for payments)
-MPESA_CONSUMER_KEY=your_key
-MPESA_CONSUMER_SECRET=your_secret
-MPESA_SHORTCODE=174379
-MPESA_PASSKEY=your_passkey
-MPESA_ENV=sandbox
-```
-
-See `.env.example` for all available options.
-
-## Project Structure
-
-```
-happy_kids_commuters/
-├── backend/                 # Node.js API server
-│   ├── config/             # Database and app configuration
-│   ├── controllers/        # Route controllers
-│   ├── middleware/         # Auth, validation, security
-│   ├── routes/             # API route definitions
-│   ├── services/           # External integrations (M-Pesa, SMS)
-│   ├── tests/              # Jest test files
-│   ├── Dockerfile          # Backend container config
-│   └── server.js           # Entry point
-│
-├── admin-dashboard/        # React admin interface
-│   ├── src/
-│   └── Dockerfile
-│
-├── parent-app/             # React Native parent app
-├── driver-app/             # React Native driver app
-│
-├── ai-service/             # Python FastAPI service
-│   ├── route_optimizer.py
-│   ├── eta_predictor.py
-│   └── Dockerfile
-│
-├── database/               # Database schemas and seeds
-│   ├── migrations/
-│   └── seeds/
-│
-├── docs/                   # Documentation
-│   ├── API.md             # API endpoint documentation
-│   └── ARCHITECTURE.md    # System architecture
-│
-├── scripts/               # Utility scripts
-│   └── demo.sh            # Demo setup script
-│
-├── docker-compose.yml     # Docker orchestration
-└── .env.example           # Environment template
-```
-
-## Documentation
-
-- **[API Documentation](docs/API.md)** - Complete API reference with endpoints and examples
-- **[Architecture Guide](docs/ARCHITECTURE.md)** - System design and data flow
-- **[Database Schema](database/migrations/001_initial_schema.sql)** - PostgreSQL schema
-- **[Admin Dashboard README](admin-dashboard/README.md)**
-- **[AI Service README](ai-service/README.md)**
-
-## Testing
-
-### Run All Tests
+### Start the AI Service (optional)
 
 ```bash
-cd backend
-npm test
+cd ai-service
+pip install -r requirements.txt
+uvicorn main:app --host 0.0.0.0 --port 8000
 ```
 
-### Run Specific Tests
+### Verify It's Working
 
 ```bash
-# Auth tests only
-npm run test:auth
-
-# Tracking tests only
-npm run test:tracking
-
-# Watch mode
-npm run test:watch
+curl http://localhost:5000/api/health
+# → {"status":"ok","timestamp":"...","uptime":...}
 ```
-
-### Test Coverage
-
-The test suite covers:
-- User registration and login
-- Authentication middleware
-- Trip management (start/end)
-- Attendance marking
-- Role-based access control
-
-## Development
-
-### Available Scripts
-
-```bash
-# Backend
-npm run dev          # Start with nodemon (auto-reload)
-npm start            # Start production server
-npm test             # Run tests with coverage
-npm run test:watch   # Run tests in watch mode
-
-# Database
-npm run migrate      # Run Sequelize migrations
-npm run seed         # Seed database with sample data
-```
-
-### Code Style
-
-- Use ESLint configuration provided in each package
-- Follow existing code patterns
-- Write tests for new features
-
-## Deployment
-
-### Using Docker
-
-```bash
-# Production build
-docker-compose -f docker-compose.yml up -d
-
-# View logs
-docker-compose logs -f
-
-# Stop services
-docker-compose down
-
-# Reset everything (including database)
-docker-compose down -v
-```
-
-### Manual Deployment
-
-1. Set `NODE_ENV=production` in environment
-2. Run `npm install --production` in backend
-3. Build admin dashboard: `npm run build` in admin-dashboard
-4. Use a process manager like PM2 for the backend
-5. Set up Nginx as reverse proxy
-6. Configure SSL/TLS certificates
-
-## Security
-
-### Implemented Security Measures
-
-- **Authentication**: JWT tokens with bcrypt password hashing
-- **Rate Limiting**: 
-  - General API: 100 requests/15min
-  - Auth endpoints: 5 attempts/15min
-  - Payment endpoints: 3 requests/min
-- **Input Validation**: express-validator for all inputs
-- **XSS Protection**: Input sanitization and security headers
-- **CORS**: Configurable allowed origins
-- **SQL Injection**: Prevented via Sequelize ORM
-
-### Security Best Practices
-
-1. **Never commit `.env` files** - Use `.env.example` as template
-2. **Use strong JWT secrets** - Minimum 32 characters, random
-3. **Enable HTTPS** in production
-4. **Regularly update dependencies** - Check for security patches
-5. **Rotate credentials** periodically
-6. **Monitor logs** for suspicious activity
-
-## Troubleshooting
-
-### Port Already in Use
-
-```bash
-# Change ports in docker-compose.yml or .env file
-# Default ports: 5000 (backend), 8000 (AI), 3000 (admin), 5432 (DB)
-```
-
-### Database Connection Issues
-
-```bash
-# Ensure PostgreSQL is running
-# Check credentials in .env match docker-compose.yml
-# For Docker: use 'postgres' as DB_HOST, not 'localhost'
-```
-
-### Socket.IO Connection Failed
-
-```bash
-# Check CORS settings in server.js
-# Ensure client is connecting to correct port
-# Verify no firewall blocking WebSocket connections
-```
-
-## Contributing
-
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Add tests for new functionality
-5. Ensure all tests pass
-6. Submit a pull request
-
-## License
-
-ISC
-
-## Support
-
-For issues and questions:
-- Check the [documentation](docs/)
-- Review [API reference](docs/API.md)
-- Open an issue in the repository
 
 ---
 
-**Built with ❤️ for safer school commutes**
+## Features
+
+### For Parents
+- **Live GPS Tracking** — See the bus location in real time
+- **M-Pesa Payments** — Pay transport fees via STK Push
+- **Attendance History** — View board/drop timestamps
+- **Absence Requests** — Notify the school when your child won't ride
+- **Pickup Changes** — Request temporary pickup location changes
+- **Chat** — Message drivers or administrators
+- **Notifications** — Receive alerts for arrivals, payments, and emergencies
+
+### For Drivers
+- **Route Guidance** — Turn-by-turn navigation with optimized routes
+- **Attendance Marking** — Board and drop students with one tap
+- **SOS Emergency** — One-tap alert to administrators
+- **Trip Management** — Start/end trips with automatic tracking
+
+### For Administrators
+- **Dashboard** — Real-time overview of all operations
+- **Student Management** — Register and manage students
+- **Driver Management** — Assign drivers to buses and routes
+- **Route Planning** — Create and optimize bus routes with stops
+- **Payment Monitoring** — Track M-Pesa transactions and balances
+- **Geofencing** — Set up school zones and restricted areas
+- **Driver Behavior** — Monitor speeding, braking, and route deviations
+- **Incident Management** — View and resolve emergency alerts
+- **Analytics & Reports** — Financial reports and operational insights
+
+---
+
+## Tech Stack
+
+| Layer | Technology |
+|-------|-----------|
+| **Backend** | Node.js, Express.js, Socket.IO |
+| **Database** | PostgreSQL 15, Sequelize ORM |
+| **Admin Frontend** | React, Vite, Tailwind CSS |
+| **Mobile App** | React Native, Expo |
+| **AI Service** | Python, FastAPI |
+| **Payments** | M-Pesa STK Push API |
+| **Real-time** | WebSockets (Socket.IO) |
+| **Auth** | JWT, bcrypt |
+| **Containerization** | Docker, Docker Compose |
+
+---
+
+## Contributing
+
+Contributions are welcome! Here's how to get started:
+
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Make your changes
+4. Add tests for new functionality
+5. Ensure all tests pass (`cd backend && npm test`)
+6. Commit your changes (`git commit -m 'Add amazing feature'`)
+7. Push to the branch (`git push origin feature/amazing-feature`)
+8. Open a Pull Request
+
+---
+
+## License
+
+This project is licensed under the **ISC License** — see the [LICENSE](LICENSE) file for details.
+
+---
+
+## Acknowledgments
+
+- Built with inspiration from real-world school transport challenges in Kenya
+- M-Pesa integration powered by the Safaricom Daraja API
+- Route optimization algorithms inspired by open-source vehicle routing research
+
+---
+
+## Documentation
+
+| Resource | Description |
+|----------|-------------|
+| [Setup Guide](docs/setup.md) | Complete setup instructions for new machines |
+| [API Reference](docs/API.md) | All API endpoints with examples |
+| [Architecture](docs/ARCHITECTURE.md) | System design and data flow |
+| [Database Schema](database/migrations/initial_schema.sql) | Complete PostgreSQL schema |
+| [Ngrok Setup](docs/ngroksetup.md) | Exposing local server for mobile testing |

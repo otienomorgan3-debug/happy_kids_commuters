@@ -97,23 +97,23 @@ export default function DriverBehavior() {
 
                         <div className="space-y-2">
                             <div className="flex justify-between text-xs">
-                                <span className="text-gray-600">🚗 Speeding</span>
+                                <span className="text-gray-600">Speeding</span>
                                 <span className="font-semibold text-gray-800">{score.speeding_count}</span>
                             </div>
                             <div className="flex justify-between text-xs">
-                                <span className="text-gray-600">🛑 Harsh Braking</span>
+                                <span className="text-gray-600">Harsh Braking</span>
                                 <span className="font-semibold text-gray-800">{score.harsh_braking_count}</span>
                             </div>
                             <div className="flex justify-between text-xs">
-                                <span className="text-gray-600">💨 Rapid Accel</span>
+                                <span className="text-gray-600">Rapid Accel</span>
                                 <span className="font-semibold text-gray-800">{score.rapid_acceleration_count}</span>
                             </div>
                             <div className="flex justify-between text-xs">
-                                <span className="text-gray-600">⏸️ Idle Time</span>
+                                <span className="text-gray-600">⏸Idle Time</span>
                                 <span className="font-semibold text-gray-800">{score.idle_time_minutes} min</span>
                             </div>
                             <div className="flex justify-between text-xs">
-                                <span className="text-gray-600">🗺️ Route Deviations</span>
+                                <span className="text-gray-600">Route Deviations</span>
                                 <span className="font-semibold text-gray-800">{score.route_deviations}</span>
                             </div>
                         </div>

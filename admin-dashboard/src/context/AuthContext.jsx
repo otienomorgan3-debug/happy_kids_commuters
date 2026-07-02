@@ -1,33 +1,33 @@
-import { createContext, useContext, useState, useEffect } from 'react';
-import { getMe } from '../api/api';
-
-const AuthContext = createContext();
+import { useState, useCallback } from 'react';
+import { AuthContext } from './context';
 
 export const AuthProvider = ({ children }) => {
     const [user, setUser] = useState(null);
-    const [loading, setLoading] = useState(true);
+    const [loading, setLoading] = useState(() => !!localStorage.getItem('hkcs_token'));
 
-    useEffect(() => {
+    const initialize = useCallback(() => {
         const token = localStorage.getItem('hkcs_token');
-        if (token) {
+        if (!token) return;
+        import('../api/api').then(({ getMe }) => {
             getMe()
                 .then(res => setUser(res.data.user))
                 .catch(() => localStorage.removeItem('hkcs_token'))
                 .finally(() => setLoading(false));
-        } else {
-            setLoading(false);
-        }
+        });
     }, []);
 
-    const login = (token, userData) => {
+    // Initialize auth state on mount via useState initializer
+    useState(initialize);
+
+    const login = useCallback((token, userData) => {
         localStorage.setItem('hkcs_token', token);
         setUser(userData);
-    };
+    }, []);
 
-    const logout = () => {
+    const logout = useCallback(() => {
         localStorage.removeItem('hkcs_token');
         setUser(null);
-    };
+    }, []);
 
     return (
         <AuthContext.Provider value={{ user, login, logout, loading }}>
@@ -35,5 +35,3 @@ export const AuthProvider = ({ children }) => {
         </AuthContext.Provider>
     );
 };
-
-export const useAuth = () => useContext(AuthContext);

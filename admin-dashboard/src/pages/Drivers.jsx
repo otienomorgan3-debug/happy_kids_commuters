@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { getAllDrivers, getAllBuses, assignDriver, unassignDriver, addDriver } from '../api/api';
 import toast from 'react-hot-toast';
 
@@ -18,7 +18,7 @@ export default function Drivers() {
         password: ''
     });
 
-    const fetchData = async () => {
+    const fetchData = useCallback(async () => {
         try {
             const [driversRes, busesRes] = await Promise.all([
                 getAllDrivers(),
@@ -31,9 +31,14 @@ export default function Drivers() {
         } finally {
             setLoading(false);
         }
-    };
+    }, []);
 
-    useEffect(() => { fetchData(); }, []);
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            fetchData();
+        }, 0);
+        return () => clearTimeout(timer);
+    }, [fetchData]);
 
     const handleAssign = async (driver_id) => {
         if (!selectedBus) return toast.error('Please select a bus');

@@ -1,102 +1,182 @@
-# HKCS AI Route Optimization Service
+# HKCS AI Service
+
+> Rule-based route optimization and ETA prediction engine for the Happy Kids Commuter System. No ML training required — runs instantly on any machine.
+
+---
 
 ## Overview
 
-The HKCS AI Service provides **rule-based route optimization and ETA prediction** for the Happy Kids Commuter System. **No machine learning models or training are required** - all algorithms are deterministic and run instantly.
+The HKCS AI Service provides **deterministic route optimization and ETA prediction** for school bus fleets. It uses the Nearest Neighbor algorithm and Haversine distance calculations to optimize stop order, and applies time-of-day traffic rules to predict arrival times.
 
-## Architecture
+**No machine learning models, no training data, no GPU needed.** All algorithms are rule-based and work out of the box.
 
-### Rule-Based Approach (No ML Training)
+**Who it's for:** The HKCS backend calls this service automatically when administrators create or optimize routes. It can also be used standalone via its REST API.
 
-This service uses **deterministic algorithms** instead of machine learning models:
+---
 
-1. **Nearest Neighbor Algorithm** - Greedy route optimization
-2. **Haversine Formula** - Accurate distance calculations
-3. **Rule-Based ETA Prediction** - Time-of-day and traffic zone rules
+## Demo
 
-### Why Rule-Based?
+```bash
+# Test route optimization
+curl -X POST http://localhost:8000/optimize-route \
+  -H "Content-Type: application/json" \
+  -d '{"stops":[{"id":1,"name":"School","latitude":-1.2921,"longitude":36.8219},{"id":2,"name":"Stop A","latitude":-1.3000,"longitude":36.8300}]}'
 
-- ✅ **No training data required**
-- ✅ **Instant results** (no model inference time)
-- ✅ **Predictable and explainable** decisions
-- ✅ **Low computational resources** - runs on any machine
-- ✅ **Easy to debug and maintain**
-- ✅ **No GPU required**
+# Response:
+# {"original_stops":2,"optimized_route":[...],"total_distance_km":1.3,"estimated_duration_minutes":5}
+```
 
-## Algorithms Used
+---
+
+## Installation
+
+### Prerequisites
+
+- [Python](https://python.org/) 3.10+
+- [pip](https://pip.pypa.io/)
+
+### Quick Start
+
+```bash
+# 1. Navigate to the ai-service directory
+cd ai-service
+
+# 2. Create a virtual environment (recommended)
+python -m venv venv
+
+# 3. Activate it
+# Windows:
+venv\Scripts\activate
+# Mac/Linux:
+source venv/bin/activate
+
+# 4. Install dependencies
+pip install -r requirements.txt
+
+# 5. Start the service
+uvicorn main:app --host 0.0.0.0 --port 8000
+```
+
+### Using Docker
+
+```bash
+docker build -t hkcs-ai-service .
+docker run -p 8000:8000 hkcs-ai-service
+```
+
+### Using Docker Compose (Full Stack)
+
+```bash
+# From the project root
+docker compose up -d ai-service
+```
+
+---
+
+## Usage
+
+### Available Endpoints
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `POST` | `/optimize-route` | Optimize the order of stops for a single bus route |
+| `POST` | `/optimize-multi-bus` | Distribute stops across multiple buses and optimize each route |
+| `POST` | `/calculate-eta` | Calculate ETA from current position to a destination |
+| `POST` | `/route-eta` | Calculate cumulative ETA for all stops on a route |
+| `GET` | `/health` | Health check |
+
+### Example: Optimize a Route
+
+```bash
+curl -X POST http://localhost:8000/optimize-route \
+  -H "Content-Type: application/json" \
+  -d '{
+    "stops": [
+      {"id": 1, "name": "School", "latitude": -1.2921, "longitude": 36.8219},
+      {"id": 2, "name": "Stop A", "latitude": -1.3000, "longitude": 36.8300},
+      {"id": 3, "name": "Stop B", "latitude": -1.3100, "longitude": 36.8400}
+    ]
+  }'
+```
+
+### Example: Calculate ETA
+
+```bash
+curl -X POST http://localhost:8000/calculate-eta \
+  -H "Content-Type: application/json" \
+  -d '{
+    "current_lat": -1.2921,
+    "current_lng": 36.8219,
+    "destination_lat": -1.3000,
+    "destination_lng": 36.8300,
+    "zone": "CBD"
+  }'
+```
+
+### Health Check
+
+```bash
+curl http://localhost:8000/health
+# → {"status":"healthy","service":"hkcs-ai-service"}
+```
+
+---
+
+## Features
+
+### Route Optimization
+- **Nearest Neighbor Algorithm** — Greedy optimization that finds the shortest path through all stops
+- **Multi-Bus Distribution** — Automatically splits stops across multiple buses using zone clustering
+- **Haversine Distance** — Accurate geographic distance calculations
+
+### ETA Prediction
+- **Time-of-Day Profiles** — Morning peak (20 km/h), midday (35 km/h), evening peak (18 km/h), off-peak (40 km/h)
+- **Traffic Zone Multipliers** — CBD (60%), Westlands (75%), Eastlands (80%), Suburbs (95%)
+- **Road Factor** — Accounts for indirect routes (×1.3 multiplier)
+
+### Performance
+- Route optimization: **< 10ms** for 50 stops
+- ETA calculation: **< 5ms** per stop
+- Multi-bus optimization: **< 50ms** for 100 stops across 5 buses
+- Memory usage: **< 50MB**
+- CPU: **Single core sufficient**
+
+### Reliability
+- **Graceful Fallback** — Backend continues working if AI service is unavailable
+- **Deterministic** — Same input always produces the same output
+- **No Training Required** — Works immediately after installation
+
+---
+
+## Tech Stack
+
+| Layer | Technology |
+|-------|-----------|
+| **Framework** | Python, FastAPI |
+| **Server** | Uvicorn (ASGI) |
+| **Distance Calculation** | Haversine formula |
+| **Data Validation** | Pydantic |
+| **Containerization** | Docker |
+
+---
+
+## How It Works
 
 ### 1. Nearest Neighbor Route Optimization
 
-**Purpose**: Optimize the order of stops for a single bus route
-
-**How it works**:
-1. Start from the first stop (school/depot)
-2. Find the closest unvisited stop using Haversine distance
-3. Move to that stop and repeat until all stops visited
-
-**Time Complexity**: O(n²) where n = number of stops
-**Best for**: Routes with 5-50 stops
-
-**Example**:
 ```
-Input: [School, Stop A, Stop B, Stop C]
+Input:  [School, Stop A, Stop B, Stop C]
 Output: [School, Stop A (2km), Stop C (1.5km), Stop B (3km)]
 ```
 
-### 2. Multi-Bus Route Optimization
+1. Start from the first stop (school/depot)
+2. Find the closest unvisited stop using Haversine distance
+3. Move to that stop and repeat until all stops are visited
 
-**Purpose**: Distribute stops across multiple buses efficiently
+**Time Complexity:** O(n²) where n = number of stops
 
-**Algorithm**:
-1. **Zone Clustering** (if zones defined): Group stops by geographical proximity
-2. **Even Distribution**: Split stops equally among buses
-3. **Per-Bus Optimization**: Apply Nearest Neighbor to each bus's stops
+### 2. ETA Calculation
 
-**Use Case**: Large schools with 100+ students and multiple buses
-
-### 3. ETA Prediction (Rule-Based)
-
-**Purpose**: Calculate estimated arrival time accounting for traffic
-
-**Inputs**:
-- Current bus position (lat/lng)
-- Destination position (lat/lng)
-- Traffic zone (CBD, Westlands, Eastlands, Suburbs)
-- Time of day
-
-**Rules Applied**:
-
-#### Speed Profiles (Nairobi Traffic Patterns):
-```python
-SPEED_PROFILES = {
-    'morning_peak': 20 km/h,    # 6am - 9am (heavy traffic)
-    'midday': 35 km/h,          # 9am - 4pm (moderate)
-    'evening_peak': 18 km/h,    # 4pm - 7pm (heavy traffic)
-    'off_peak': 40 km/h         # 7pm - 6am (light traffic)
-}
-```
-
-#### Traffic Zone Multipliers:
-```python
-TRAFFIC_ZONES = {
-    'CBD': 0.6,          # Heavy traffic - 40% slower
-    'Westlands': 0.75,   # Moderate traffic - 25% slower
-    'Eastlands': 0.8,    # Moderate traffic - 20% slower
-    'Suburbs': 0.95,     # Light traffic - 5% slower
-    'default': 0.85      # Default - 15% slower
-}
-```
-
-**Calculation**:
-```
-1. Calculate straight-line distance (Haversine)
-2. Apply road factor (×1.3 for indirect routes)
-3. Get base speed from time-of-day profile
-4. Apply traffic zone multiplier
-5. Calculate time = distance / effective_speed
-```
-
-**Example**:
 ```
 Distance: 10 km
 Time: 8am (morning peak)
@@ -106,218 +186,35 @@ Base speed: 20 km/h
 Traffic multiplier: 0.6
 Effective speed: 20 × 0.6 = 12 km/h
 Road distance: 10 × 1.3 = 13 km
-ETA: 13 / 12 = 1.08 hours = 65 minutes
+ETA: 13 / 12 = 1.08 hours ≈ 65 minutes
 ```
 
-## API Endpoints
+### 3. Multi-Bus Optimization
 
-### POST /optimize-route
-Optimize single bus route
+1. **Zone Clustering** — Group stops by geographical proximity
+2. **Even Distribution** — Split stops equally among buses
+3. **Per-Bus Optimization** — Apply Nearest Neighbor to each bus's stops
 
-**Request**:
-```json
-{
-  "stops": [
-    {"id": 1, "name": "School", "latitude": -1.2921, "longitude": 36.8219},
-    {"id": 2, "name": "Stop A", "latitude": -1.3000, "longitude": 36.8300},
-    {"id": 3, "name": "Stop B", "latitude": -1.3100, "longitude": 36.8400}
-  ]
+---
+
+### Customizing Traffic Rules
+
+Edit `eta_predictor.py` to adjust speed profiles and traffic zones for your city:
+
+```python
+SPEED_PROFILES = {
+    'morning_peak': 20,    # km/h - adjust for your city
+    'midday': 35,
+    'evening_peak': 18,
+    'off_peak': 40
+}
+
+TRAFFIC_ZONES = {
+    'CBD': 0.6,            # multiplier - lower = slower
+    'Westlands': 0.75,
+    'Eastlands': 0.8,
+    'Suburbs': 0.95
 }
 ```
 
-**Response**:
-```json
-{
-  "original_stops": 3,
-  "optimized_route": [...],
-  "total_distance_km": 2.5,
-  "estimated_duration_minutes": 8,
-  "message": "Route optimized for 3 stops"
-}
-```
-
-### POST /optimize-multi-bus
-Optimize routes for multiple buses
-
-**Request**:
-```json
-{
-  "stops": [...],
-  "num_buses": 3
-}
-```
-
-**Response**:
-```json
-{
-  "total_stops": 30,
-  "num_buses": 3,
-  "routes": [
-    {
-      "bus_number": 1,
-      "stops": [...],
-      "total_distance_km": 15.5,
-      "total_stops": 10
-    },
-    ...
-  ]
-}
-```
-
-### POST /calculate-eta
-Calculate ETA from current position to destination
-
-**Request**:
-```json
-{
-  "current_lat": -1.2921,
-  "current_lng": 36.8219,
-  "destination_lat": -1.3000,
-  "destination_lng": 36.8300,
-  "zone": "CBD"
-}
-```
-
-**Response**:
-```json
-{
-  "eta": {
-    "distance_km": 1.3,
-    "estimated_minutes": 13,
-    "estimated_arrival": "13 minutes",
-    "speed_used_kmh": 12.0,
-    "traffic_zone": "CBD",
-    "time_of_day": "Morning peak"
-  }
-}
-```
-
-### POST /route-eta
-Calculate cumulative ETA for all stops on a route
-
-**Request**:
-```json
-{
-  "stops": [...],
-  "bus_lat": -1.2921,
-  "bus_lng": 36.8219
-}
-```
-
-**Response**:
-```json
-{
-  "bus_position": {"latitude": -1.2921, "longitude": 36.8219},
-  "stops_with_eta": [
-    {
-      "id": 1,
-      "name": "School",
-      "eta_minutes": 5,
-      "eta_display": "5 min",
-      "distance_from_prev_km": 1.3
-    },
-    ...
-  ]
-}
-```
-
-## Performance
-
-- **Route Optimization**: < 10ms for 50 stops
-- **ETA Calculation**: < 5ms per stop
-- **Multi-Bus Optimization**: < 50ms for 100 stops across 5 buses
-- **Memory Usage**: < 50MB
-- **CPU**: Single core sufficient
-
-## Dependencies
-
-```
-fastapi
-uvicorn
-haversine
-pydantic
-```
-
-## Running the Service
-
-```bash
-# Install dependencies
-pip install -r requirements.txt
-
-# Start service
-python -m uvicorn main:app --host 0.0.0.0 --port 8000
-
-# Or with Docker
-docker build -t hkcs-ai-service .
-docker run -p 8000:8000 hkcs-ai-service
-```
-
-## Integration with Backend
-
-The backend (`backend/controllers/adminController.js`) calls this service:
-
-```javascript
-const optimizeStopsOrder = async (stops) => {
-  // Skip optimization if no coordinates
-  if (!hasCoordinates(stops) || stops.length < 2) return stops;
-  
-  try {
-    const response = await axios.post(`${AI_SERVICE_URL}/optimize-route`, {
-      stops: stops.map(stop => ({
-        id: stop.id,
-        name: stop.stop_name,
-        latitude: stop.latitude,
-        longitude: stop.longitude
-      }))
-    });
-    
-    // Use optimized route order
-    return response.data.optimized_route;
-  } catch (error) {
-    // Fallback to original order if service unavailable
-    return stops;
-  }
-};
-```
-
-## Future Enhancements (Optional)
-
-If you later want to add ML capabilities:
-
-1. **Historical ETA Model**: Train on actual vs predicted times
-   - Collect: actual_travel_time, time_of_day, traffic_zone, weather
-   - Model: Linear regression or XGBoost
-   - Expected improvement: 10-15% accuracy
-
-2. **Demand Prediction**: Predict pickup demand by location
-   - Collect: historical pickup data, school calendar, events
-   - Model: Time series forecasting
-   - Use case: Proactive bus allocation
-
-3. **Route Learning**: Learn optimal stop order from driver behavior
-   - Collect: actual routes taken, time taken per segment
-   - Model: Reinforcement learning
-   - Use case: Continuous improvement
-
-**Note**: These are optional enhancements. The current rule-based system is production-ready and requires no training.
-
-## Troubleshooting
-
-**Q: Do I need to train models?**
-A: No! All algorithms are rule-based and work out of the box.
-
-**Q: Can I run this on my laptop?**
-A: Yes! No GPU or special hardware required. Runs on any CPU.
-
-**Q: How accurate is the ETA?**
-A: Typically within ±15% of actual arrival time. Accuracy depends on:
-- Quality of speed profile data for your city
-- Traffic zone definitions
-- Road network complexity
-
-**Q: Can I customize the rules?**
-A: Yes! Edit `SPEED_PROFILES` and `TRAFFIC_ZONES` in `eta_predictor.py` to match your city's patterns.
-
-## License
-
-Part of HKCS - Happy Kids Commuter System
+---
