@@ -53,7 +53,7 @@ psql -U hkcs_user -d hkcs_db -f database/migrations/initial_schema.sql
 psql -U hkcs_user -d hkcs_db -f database/seeds/initial_test_data.sql
 ```
 
-> **Note:** The `initial_schema.sql` file is a single consolidated migration that replaces the old 7 separate migration files. It includes all tables, columns, indexes, and data migrations.
+> **Note:** The `initial_schema.sql` file is a single consolidated migration. It includes all tables, columns, indexes, and data migrations.
 
 ---
 
