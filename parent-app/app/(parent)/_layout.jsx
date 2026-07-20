@@ -35,10 +35,14 @@ export default function ParentLayout() {
         options={{ title: 'Alerts', tabBarIcon: () => <Text style={{ fontSize: 20 }}>🔔</Text> }}
       />
       <Tabs.Screen
+        name="emergency-alerts"
+        options={{ title: 'Emergency', tabBarIcon: () => <Text style={{ fontSize: 20 }}>🚨</Text> }}
+      />
+      <Tabs.Screen
         name="payments"
         options={{ title: 'Payments', tabBarIcon: () => <Text style={{ fontSize: 20 }}>💳</Text> }}
       />
-      {/* Hidden screens (navigated from dashboard) */}
+      {/* Hidden screens */}
       <Tabs.Screen
         name="profile"
         options={{ href: null }}
@@ -53,6 +57,10 @@ export default function ParentLayout() {
       />
       <Tabs.Screen
         name="change-pickup"
+        options={{ href: null }}
+      />
+      <Tabs.Screen
+        name="schedule-preview"
         options={{ href: null }}
       />
     </Tabs>

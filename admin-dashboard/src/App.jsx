@@ -9,7 +9,9 @@ import LiveMap from './pages/LiveMap';
 import Students from './pages/Students';
 import Parents from './pages/Parents';
 import Drivers from './pages/Drivers';
+import Buses from './pages/Buses';
 import RoutesPage from './pages/Routes';
+import Schools from './pages/Schools';
 import Reports from './pages/Reports';
 import Payments from './pages/Payments';
 import Analytics from './pages/Analytics';
@@ -38,7 +40,9 @@ function ProtectedLayout() {
           <Route path="/map" element={<LiveMap />} />
           <Route path="/students" element={<Students />} />
           <Route path="/drivers" element={<Drivers />} />
+          <Route path="/buses" element={<Buses />} />
           <Route path="/routes" element={<RoutesPage />} />
+          <Route path="/schools" element={<Schools />} />
           <Route path="/reports" element={<Reports />} />
           <Route path="/payments" element={<Payments />} />
           <Route path="/parents" element={<Parents />} />

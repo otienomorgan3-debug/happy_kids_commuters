@@ -4,8 +4,8 @@ const {
   getDashboardStats,
   addBus, getAllBuses, updateBus, deleteBus,
   getAllDrivers, assignDriverToBus, unassignDriver, addDriver,
-  addRoute, getAllRoutes, updateRoute, deleteRoute,
-  addSchool, getAllSchools,
+  addRoute, getAllRoutes, updateRoute, deleteRoute, optimizeRoute,
+  addSchool, getAllSchools, updateSchool, deleteSchool,
   getAttendanceReport, getTripReport,
   getAnalytics, getAttendanceTrends,
   getAllParents, getParentDetails, updateParentStatus,
@@ -54,10 +54,13 @@ router.get('/routes', getAllRoutes);
 router.post('/routes', addRoute);
 router.put('/routes/:id', updateRoute);
 router.delete('/routes/:id', deleteRoute);
+router.post('/routes/:id/optimize', optimizeRoute);
 
 // Schools
 router.get('/schools', getAllSchools);
 router.post('/schools', addSchool);
+router.put('/schools/:id', updateSchool);
+router.delete('/schools/:id', deleteSchool);
 
 // Reports
 router.get('/reports/attendance', getAttendanceReport);

@@ -57,7 +57,7 @@ const getMyStudents = async (req, res) => {
   try {
     const result = await pool.query(
       `WITH current_trip AS (
-         SELECT id, bus_id
+         SELECT id, bus_id, route_id
          FROM trips
          WHERE status = 'active'
          ORDER BY start_time DESC

@@ -484,6 +484,85 @@ const getPaymentStats = async (req, res) => {
   }
 };
 
+const generateInvoices = async (req, res) => {
+  const { student_ids, amount, description } = req.body;
+  try {
+    let targets = [];
+    if (Array.isArray(student_ids) && student_ids.length > 0) {
+      const result = await pool.query(
+        `SELECT s.id, s.name, p.id as parent_id, u.email as parent_email, u.phone as parent_phone
+         FROM students s JOIN parents p ON s.parent_id = p.id JOIN users u ON u.id = p.user_id
+         WHERE s.id = ANY($1::int[])`,
+        [student_ids]
+      );
+      targets = result.rows;
+    } else {
+      const result = await pool.query(
+        `SELECT s.id, s.name, p.id as parent_id, u.email as parent_email, u.phone as parent_phone
+         FROM students s JOIN parents p ON s.parent_id = p.id JOIN users u ON u.id = p.user_id
+         WHERE COALESCE(s.outstanding_balance, 0) > 0`
+      );
+      targets = result.rows;
+    }
+    const inserted = [];
+    for (const student of targets) {
+      const amt = amount || Number(student.outstanding_balance) || 0;
+      if (amt <= 0) continue;
+      const payResult = await pool.query(
+        `INSERT INTO payments (parent_id, student_id, amount, mpesa_receipt, status, description)
+         VALUES ($1, $2, $3, NULL, 'pending', $4) RETURNING *`,
+        [student.parent_id, student.id, amt, description || 'Auto-generated invoice']
+      );
+      inserted.push(payResult.rows[0]);
+    }
+    res.status(201).json({ message: `Generated ${inserted.length} invoices`, invoices: inserted });
+  } catch (error) {
+    console.error('Generate invoices error:', error.message);
+    res.status(500).json({ message: 'Server error generating invoices' });
+  }
+};
+
+const sendPaymentReminders = async (req, res) => {
+  const { student_ids } = req.body;
+  try {
+    let query = `SELECT p.id as payment_id, s.name as student_name, p.amount, u.name as parent_name, u.phone as parent_phone
+                 FROM payments p
+                 JOIN students s ON s.id = p.student_id
+                 JOIN parents pr ON pr.id = p.parent_id
+                 JOIN users u ON u.id = pr.user_id
+                 WHERE p.status = 'pending'`;
+    const params = [];
+    if (Array.isArray(student_ids) && student_ids.length > 0) {
+      query += ' AND s.id = ANY($1::int[])';
+      params.push(student_ids);
+    }
+    const result = await pool.query(query, params);
+    const reminders = result.rows.map(row => ({
+      ...row,
+      message: `Reminder: Payment of KES ${row.amount} for ${row.student_name} is pending. Please complete payment.`
+    }));
+    res.status(200).json({ reminders, count: reminders.length });
+  } catch (error) {
+    console.error('Send reminders error:', error.message);
+    res.status(500).json({ message: 'Server error sending reminders' });
+  }
+};
+
+const processRefund = async (req, res) => {
+  const { payment_id, reason } = req.body;
+  try {
+    const result = await pool.query(
+      `UPDATE payments SET status = 'refunded', description = COALESCE(description, '') || ' | Refund: ' || $2 WHERE id = $1 AND status = 'paid' RETURNING *`,
+      [payment_id, reason || 'No reason provided']
+    );
+    if (result.rows.length === 0) return res.status(404).json({ message: 'Payment not found or not eligible for refund' });
+    res.status(200).json({ message: 'Refund processed successfully', payment: result.rows[0] });
+  } catch (error) {
+    console.error('Process refund error:', error.message);
+    res.status(500).json({ message: 'Server error processing refund' });
+  }
+};
+
 module.exports = {
   initiateStkPush,
   handleMpesaCallback,
@@ -492,4 +571,7 @@ module.exports = {
   getPaymentReceipt,
   getAllPayments,
   getPaymentStats,
+  generateInvoices,
+  sendPaymentReminders,
+  processRefund,
 };

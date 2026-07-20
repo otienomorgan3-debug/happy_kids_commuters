@@ -2,6 +2,44 @@ const pool = require('../config/db');
 
 const AI_SERVICE_URL = process.env.AI_SERVICE_URL || 'http://localhost:8000';
 
+const haversine = (lat1, lon1, lat2, lon2) => {
+  const R = 6371;
+  const dLat = ((lat2 - lat1) * Math.PI) / 180;
+  const dLon = ((lon2 - lon1) * Math.PI) / 180;
+  const a = Math.sin(dLat / 2) ** 2 +
+    Math.cos((lat1 * Math.PI) / 180) * Math.cos((lat2 * Math.PI) / 180) *
+    Math.sin(dLon / 2) ** 2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+};
+
+const calculateRouteFuel = async (routeId) => {
+  const stopsResult = await pool.query(
+    'SELECT latitude, longitude FROM route_stops WHERE route_id = $1 ORDER BY stop_order',
+    [routeId]
+  );
+  const stops = stopsResult.rows.filter(s => s.latitude !== null && s.longitude !== null);
+  let distanceKm = 0;
+  for (let i = 1; i < stops.length; i++) {
+    distanceKm += haversine(stops[i - 1].latitude, stops[i - 1].longitude, stops[i].latitude, stops[i].longitude);
+  }
+  const busResult = await pool.query(
+    `SELECT b.fuel_consumption_rate, b.fuel_price_per_liter
+     FROM trips t JOIN buses b ON t.bus_id = b.id
+     WHERE t.route_id = $1 AND t.status = 'active' LIMIT 1`,
+    [routeId]
+  );
+  const bus = busResult.rows[0];
+  if (!bus || !distanceKm) return { distance_km: 0, estimated_fuel_liters: 0, estimated_fuel_cost: 0 };
+  const rate = Number(bus.fuel_consumption_rate) || 10;
+  const price = Number(bus.fuel_price_per_liter) || 175;
+  const liters = (distanceKm * rate) / 100;
+  return {
+    distance_km: Math.round(distanceKm * 100) / 100,
+    estimated_fuel_liters: Math.round(liters * 100) / 100,
+    estimated_fuel_cost: Math.round(liters * price * 100) / 100
+  };
+};
+
 const getRouteById = async (req, res) => {
   const { id } = req.params;
 

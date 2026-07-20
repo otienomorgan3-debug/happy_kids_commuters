@@ -229,12 +229,14 @@ export default function Drivers() {
                                             </div>
                                         ) : (
                                             <div className="flex gap-2">
+                                                {!driver.assigned_bus && (
                                                 <button
                                                     onClick={() => setAssigning(driver.id)}
                                                     className="text-blue-600 hover:text-blue-800 text-xs font-medium"
                                                 >
                                                     Assign Bus
                                                 </button>
+                                                )}
                                                 {driver.assigned_bus && (
                                                     <button
                                                         onClick={() => handleUnassign(driver.id)}

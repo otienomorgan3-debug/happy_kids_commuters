@@ -159,6 +159,8 @@ export default function Dashboard() {
           { icon: 'message-text-outline', label: 'Chat', route: '/(parent)/chat' },
           { icon: 'credit-card-outline', label: 'Payments', route: '/(parent)/payments' },
           { icon: 'bell-alert', label: 'Alerts', route: '/(parent)/notifications' },
+          { icon: 'alarm-light', label: 'Emergency', route: '/(parent)/emergency-alerts' },
+          { icon: 'calendar-clock', label: 'Schedule', route: '/(parent)/schedule-preview' },
           { icon: 'account', label: 'Profile', route: '/(parent)/profile' },
           { icon: 'history', label: 'Transport History', route: '/(parent)/transport-history' },
           { icon: 'close-circle-outline', label: 'Mark Absent', route: '/(parent)/mark-absent' },

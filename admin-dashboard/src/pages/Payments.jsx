@@ -1,12 +1,13 @@
 import { useState, useEffect } from 'react';
 import { toast } from 'react-hot-toast';
-import { getPayments, getPaymentStats } from '../api/api';
+import { getPayments, getPaymentStats, generateInvoices, sendPaymentReminders, processRefund } from '../api/api';
 
 export default function Payments() {
     const [payments, setPayments] = useState([]);
     const [stats, setStats] = useState(null);
     const [loading, setLoading] = useState(true);
     const [filter, setFilter] = useState('all');
+    const [refundingId, setRefundingId] = useState(null);
 
     const loadData = async () => {
         try {
@@ -28,9 +29,42 @@ export default function Payments() {
         loadData();
     }, []);
 
-    const filteredPayments = filter === 'all' 
-        ? payments 
+    const filteredPayments = filter === 'all'
+        ? payments
         : payments.filter(p => p.status === filter);
+
+    const handleGenerateInvoices = async () => {
+        try {
+            const res = await generateInvoices({});
+            toast.success(res.data.message);
+            loadData();
+        } catch (error) {
+            toast.error(error.response?.data?.message || 'Failed to generate invoices');
+        }
+    };
+
+    const handleSendReminders = async () => {
+        try {
+            const res = await sendPaymentReminders({});
+            toast.success(`Sent ${res.data.count} reminders`);
+        } catch (error) {
+            toast.error(error.response?.data?.message || 'Failed to send reminders');
+        }
+    };
+
+    const handleRefund = async (paymentId) => {
+        if (!window.confirm('Process refund for this payment?')) return;
+        setRefundingId(paymentId);
+        try {
+            await processRefund({ payment_id: paymentId, reason: 'Admin refund' });
+            toast.success('Refund processed');
+            loadData();
+        } catch (error) {
+            toast.error(error.response?.data?.message || 'Failed to process refund');
+        } finally {
+            setRefundingId(null);
+        }
+    };
 
     const getStatusColor = (status) => {
         switch (status) {
@@ -129,6 +163,19 @@ export default function Payments() {
                 </div>
             </div>
 
+            {/* Payment Automation Actions */}
+            <div className="bg-white rounded-lg shadow mb-6 p-4">
+                <h3 className="text-sm font-semibold text-gray-700 mb-3">Payment Automation</h3>
+                <div className="flex flex-wrap gap-3">
+                    <button onClick={handleGenerateInvoices} className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-700">
+                        Generate Invoices
+                    </button>
+                    <button onClick={handleSendReminders} className="bg-yellow-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-yellow-700">
+                        Send Payment Reminders
+                    </button>
+                </div>
+            </div>
+
             {/* Payments Table */}
             <div className="bg-white rounded-lg shadow overflow-hidden">
                 <table className="min-w-full divide-y divide-gray-200">
@@ -150,6 +197,9 @@ export default function Payments() {
                                 Receipt
                             </th>
                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Actions
+                            </th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                 Date
                             </th>
                         </tr>
@@ -157,7 +207,7 @@ export default function Payments() {
                     <tbody className="bg-white divide-y divide-gray-200">
                         {filteredPayments.length === 0 ? (
                             <tr>
-                                <td colSpan="6" className="px-6 py-8 text-center text-gray-500">
+                                <td colSpan="7" className="px-6 py-8 text-center text-gray-500">
                                     No payments found
                                 </td>
                             </tr>
@@ -185,6 +235,17 @@ export default function Payments() {
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                                         {payment.mpesa_receipt || 'Pending'}
+                                    </td>
+                                    <td className="px-6 py-4 whitespace-nowrap">
+                                        {payment.status === 'paid' && (
+                                            <button
+                                                onClick={() => handleRefund(payment.id)}
+                                                disabled={refundingId === payment.id}
+                                                className="text-red-600 hover:text-red-800 text-xs font-medium disabled:opacity-50"
+                                            >
+                                                {refundingId === payment.id ? 'Processing...' : 'Refund'}
+                                            </button>
+                                        )}
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                                         {payment.created_at ? new Date(payment.created_at).toLocaleDateString() : '—'}

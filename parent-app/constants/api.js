@@ -88,6 +88,9 @@ export const getPaymentReceipt = (id) => API.get(`/payments/receipts/${id}`);
 // Transport History
 export const getTransportHistory = () => API.get('/parent/transport-history');
 
+// Schedule preview
+export const getSchedulePreview = () => API.get('/parent/schedule-preview');
+
 // Chat
 export const sendChatMessage = (data) => API.post('/parent/chat/send', data);
 export const getChatList = () => API.get('/parent/chat/list');
@@ -97,6 +100,9 @@ export const markChatRead = (otherUserId) => API.put(`/parent/chat/read/${otherU
 // Absence
 export const markChildAbsent = (data) => API.post('/parent/absent', data);
 export const getAbsenceRecords = () => API.get('/parent/absences');
+
+// Emergency alerts
+export const getEmergencyAlerts = () => API.get('/parent/emergency-alerts');
 
 // Pickup Change
 export const requestPickupChange = (data) => API.post('/parent/pickup-change', data);

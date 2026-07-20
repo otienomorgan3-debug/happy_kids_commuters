@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
-import { addRoute, deleteRoute, getAllRoutes, updateRoute } from '../api/api';
+import { addRoute, deleteRoute, getAllRoutes, updateRoute, optimizeRoute } from '../api/api';
 
 const createStop = (order = 1) => ({
     stop_name: '',
@@ -141,6 +141,16 @@ export default function Routes() {
             await fetchRoutes();
         } catch (error) {
             toast.error(error.response?.data?.message || 'Failed to delete route');
+        }
+    };
+
+    const handleOptimize = async (route) => {
+        try {
+            await optimizeRoute(route.id);
+            toast.success('Route optimized');
+            await fetchRoutes();
+        } catch (error) {
+            toast.error(error.response?.data?.message || 'Failed to optimize route');
         }
     };
 
@@ -288,8 +298,19 @@ export default function Routes() {
                                         <p className="text-sm text-gray-500 mt-1">
                                             Estimated time: {route.estimated_time || '—'} minutes
                                         </p>
+                                        {route.fuel_estimate && route.fuel_estimate.distance_km > 0 && (
+                                            <p className="text-xs text-gray-400 mt-1">
+                                                ⛽ {route.fuel_estimate.distance_km} km • {route.fuel_estimate.estimated_fuel_liters} L • KES {route.fuel_estimate.estimated_fuel_cost}
+                                            </p>
+                                        )}
                                     </div>
                                     <div className="flex gap-2 shrink-0">
+                                        <button
+                                            onClick={() => handleOptimize(route)}
+                                            className="text-green-600 hover:text-green-800 text-sm font-medium"
+                                        >
+                                            Optimize
+                                        </button>
                                         <button
                                             onClick={() => handleEdit(route)}
                                             className="text-blue-600 hover:text-blue-800 text-sm font-medium"

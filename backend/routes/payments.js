@@ -8,6 +8,9 @@ const {
   getPaymentReceipt,
   getAllPayments,
   getPaymentStats,
+  generateInvoices,
+  sendPaymentReminders,
+  processRefund,
 } = require('../controllers/paymentController');
 const { protect, restrictTo } = require('../middleware/authMiddleware');
 
@@ -21,5 +24,8 @@ router.get('/receipts/:id', protect, restrictTo('parent'), getPaymentReceipt);
 // Admin routes
 router.get('/admin/payments', protect, restrictTo('admin', 'superadmin'), getAllPayments);
 router.get('/admin/payments/stats', protect, restrictTo('admin', 'superadmin'), getPaymentStats);
+router.post('/admin/invoices/generate', protect, restrictTo('admin', 'superadmin'), generateInvoices);
+router.post('/admin/reminders/send', protect, restrictTo('admin', 'superadmin'), sendPaymentReminders);
+router.post('/admin/refund', protect, restrictTo('admin', 'superadmin'), processRefund);
 
 module.exports = router;

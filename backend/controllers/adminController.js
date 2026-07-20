@@ -564,7 +564,35 @@ const getAllRoutes = async (req, res) => {
        FROM routes r LEFT JOIN route_stops rs ON rs.route_id = r.id
        GROUP BY r.id ORDER BY r.route_name`
     );
-    res.status(200).json({ routes: result.rows });
+    const routes = result.rows;
+    for (const route of routes) {
+      const stops = (route.stops || []).filter(s => s.latitude !== null && s.longitude !== null);
+      let distanceKm = 0;
+      for (let i = 1; i < stops.length; i++) {
+        const dLat = ((stops[i].latitude - stops[i - 1].latitude) * Math.PI) / 180;
+        const dLon = ((stops[i].longitude - stops[i - 1].longitude) * Math.PI) / 180;
+        const a = Math.sin(dLat / 2) ** 2 +
+          Math.cos((stops[i - 1].latitude * Math.PI) / 180) * Math.cos((stops[i].latitude * Math.PI) / 180) *
+          Math.sin(dLon / 2) ** 2;
+        distanceKm += 6371 * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+      }
+      const busResult = await pool.query(
+        `SELECT b.fuel_consumption_rate, b.fuel_price_per_liter
+         FROM trips t JOIN buses b ON t.bus_id = b.id
+         WHERE t.route_id = $1 AND t.status = 'active' LIMIT 1`,
+        [route.id]
+      );
+      const bus = busResult.rows[0];
+      const rate = Number(bus?.fuel_consumption_rate) || 10;
+      const price = Number(bus?.fuel_price_per_liter) || 175;
+      const liters = (distanceKm * rate) / 100;
+      route.fuel_estimate = {
+        distance_km: Math.round(distanceKm * 100) / 100,
+        estimated_fuel_liters: Math.round(liters * 100) / 100,
+        estimated_fuel_cost: Math.round(liters * price * 100) / 100
+      };
+    }
+    res.status(200).json({ routes });
   } catch (error) {
     console.error('Get routes error:', error.message);
     res.status(500).json({ message: 'Server error getting routes' });
@@ -609,6 +637,28 @@ const deleteRoute = async (req, res) => {
   }
 };
 
+const optimizeRoute = async (req, res) => {
+  const { id } = req.params;
+  const client = await pool.connect();
+  try {
+    const routeResult = await pool.query('SELECT * FROM routes WHERE id = $1', [id]);
+    if (routeResult.rows.length === 0) return res.status(404).json({ message: 'Route not found' });
+    const stopsResult = await pool.query('SELECT * FROM route_stops WHERE route_id = $1 ORDER BY stop_order', [id]);
+    const stops = normalizeStops(stopsResult.rows);
+    if (stops.length < 2) return res.status(400).json({ message: 'Need at least 2 stops to optimize' });
+    const optimized = await optimizeStopsOrder(stops);
+    await client.query('BEGIN');
+    await persistOptimizedStops(client, id, optimized);
+    await client.query('COMMIT');
+    const routeWithStops = await formatRouteResponse(id, client);
+    res.status(200).json({ message: 'Route optimized successfully', route: routeWithStops });
+  } catch (error) {
+    await client.query('ROLLBACK').catch(() => {});
+    console.error('Optimize route error:', error.message);
+    res.status(500).json({ message: 'Server error optimizing route' });
+  } finally { client.release(); }
+};
+
 // ─── SCHOOL MANAGEMENT ──────────────────────────────────────────
 
 const addSchool = async (req, res) => {
@@ -631,6 +681,30 @@ const getAllSchools = async (req, res) => {
   } catch (error) {
     console.error('Get schools error:', error.message);
     res.status(500).json({ message: 'Server error getting schools' });
+  }
+};
+
+const updateSchool = async (req, res) => {
+  const { id } = req.params;
+  const { school_name, address } = req.body;
+  try {
+    const result = await pool.query('UPDATE schools SET school_name=$1, address=$2 WHERE id=$3 RETURNING *', [school_name, address, id]);
+    if (result.rows.length === 0) return res.status(404).json({ message: 'School not found' });
+    res.status(200).json({ message: 'School updated successfully', school: result.rows[0] });
+  } catch (error) {
+    console.error('Update school error:', error.message);
+    res.status(500).json({ message: 'Server error updating school' });
+  }
+};
+
+const deleteSchool = async (req, res) => {
+  const { id } = req.params;
+  try {
+    await pool.query('DELETE FROM schools WHERE id = $1', [id]);
+    res.status(200).json({ message: 'School deleted successfully' });
+  } catch (error) {
+    console.error('Delete school error:', error.message);
+    res.status(500).json({ message: 'Server error deleting school' });
   }
 };
 
@@ -717,8 +791,8 @@ module.exports = {
   getDashboardStats,
   addBus, getAllBuses, updateBus, deleteBus,
   getAllDrivers, assignDriverToBus, unassignDriver, addDriver,
-  addRoute, getAllRoutes, updateRoute, deleteRoute,
-  addSchool, getAllSchools,
+  addRoute, getAllRoutes, updateRoute, deleteRoute, optimizeRoute,
+  addSchool, getAllSchools, updateSchool, deleteSchool,
   getAttendanceReport, getTripReport,
   getAnalytics, getAttendanceTrends,
   getAllParents, getParentDetails, updateParentStatus,

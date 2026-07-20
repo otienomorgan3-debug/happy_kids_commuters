@@ -38,7 +38,10 @@ CREATE TABLE IF NOT EXISTS buses (
     id SERIAL PRIMARY KEY,
     plate_number VARCHAR(20) UNIQUE NOT NULL,
     capacity INT NOT NULL,
-    gps_device_id VARCHAR(100)
+    gps_device_id VARCHAR(100),
+    fuel_consumption_rate DECIMAL(5,2) DEFAULT 10.00,
+    fuel_price_per_liter DECIMAL(10,2) DEFAULT 175.00,
+    last_fuel_check DATE DEFAULT CURRENT_DATE
 );
 
 -- Drivers
@@ -148,6 +151,15 @@ CREATE TABLE IF NOT EXISTS emergency_alerts (
 -- ============================================================
 -- CHAT & PARENT ACTIONS TABLES
 -- ============================================================
+
+-- Bus live locations (latest GPS coordinates per bus)
+CREATE TABLE IF NOT EXISTS bus_locations (
+    bus_id INT PRIMARY KEY REFERENCES buses(id),
+    driver_id INT REFERENCES drivers(id),
+    latitude DECIMAL(10, 7) NOT NULL,
+    longitude DECIMAL(10, 7) NOT NULL,
+    recorded_at TIMESTAMP DEFAULT NOW()
+);
 
 -- Chat messages table for parent-driver/admin communication
 CREATE TABLE IF NOT EXISTS chat_messages (
@@ -312,6 +324,11 @@ CREATE INDEX IF NOT EXISTS idx_route_stops_location ON route_stops(route_id, sto
 
 -- Set is_active to TRUE for existing users where NULL
 UPDATE users SET is_active = TRUE WHERE is_active IS NULL;
+
+-- Add fuel efficiency fields to existing buses table (idempotent)
+ALTER TABLE buses ADD COLUMN IF NOT EXISTS fuel_consumption_rate DECIMAL(5,2) DEFAULT 10.00;
+ALTER TABLE buses ADD COLUMN IF NOT EXISTS fuel_price_per_liter DECIMAL(10,2) DEFAULT 175.00;
+ALTER TABLE buses ADD COLUMN IF NOT EXISTS last_fuel_check DATE DEFAULT CURRENT_DATE;
 
 -- ============================================================
 -- COMMENTS

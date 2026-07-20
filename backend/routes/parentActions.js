@@ -10,6 +10,8 @@ const {
   requestPickupChange,
   getPickupChangeRequests,
   getTransportHistory,
+  getEmergencyAlerts,
+  getSchedulePreview,
 } = require('../controllers/parentActionsController');
 const { protect, restrictTo } = require('../middleware/authMiddleware');
 
@@ -32,5 +34,11 @@ router.get('/pickup-changes', getPickupChangeRequests);
 
 // Transport history
 router.get('/transport-history', getTransportHistory);
+
+// Emergency alerts
+router.get('/emergency-alerts', getEmergencyAlerts);
+
+// Schedule preview
+router.get('/schedule-preview', getSchedulePreview);
 
 module.exports = router;

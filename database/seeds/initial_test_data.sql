@@ -8,12 +8,14 @@ INSERT INTO schools (school_name, address) VALUES
 ('Sunshine School', '123 Education Lane, Nairobi');
 
 -- Insert users
+-- Passwords are pre-hashed with bcrypt (cost 12) to match the backend's
+-- bcrypt.compare() login check. Plain text: Admin1234, Driver1234, Driver5678, Test1234, Test5678
 INSERT INTO users (role, name, email, phone, password_hash) VALUES
-('admin', 'System Administrator', 'admin@hkcs.com', '+254700000001', 'Admin1234'),
-('driver', 'John Driver', 'driver@hkcs.com', '+254798765432', 'Driver1234'),
-('driver', 'James Driver', 'driver2@hkcs.com', '+254745678978', 'Driver5678'),
-('parent', 'Morgan Otieno', 'morgan@hkcs.com', '+254712345678', 'Test1234'),
-('parent', 'Jane Smith', 'jane@hkcs.com', '+254700000006', 'Test5678');
+('admin', 'System Administrator', 'admin@hkcs.com', '+254700000001', '$2b$12$ebUCSM6EcM6Jk4/wCfAo9eaRjVayNesxaXb5pMtfKJmBVuMsA3nGm'),
+('driver', 'John Driver', 'driver@hkcs.com', '+254798765432', '$2b$12$v6LdGEYuXrQk0pd4YXlO0eIE3OeT3ANULiaicNnohPT/RwEE0lcZG'),
+('driver', 'James Driver', 'driver2@hkcs.com', '+254745678978', '$2b$12$ZWB/9/wZU5V2fGK2j/paVuq1QYjcQ3435VGn7I0b5KbcKiMMfBqz.'),
+('parent', 'Morgan Otieno', 'morgan@hkcs.com', '+254712345678', '$2b$12$GFrFYg7ELUmTgtibuFcmvOHNG85c/WDIerz4jI2VcMSpV/OiPjIXe'),
+('parent', 'Jane Smith', 'jane@hkcs.com', '+254700000006', '$2b$12$mxMqFiQGvErQJ7P9iUhozu8ju.E4I0nSxObW2AUVeGuhV652LPW9m');
 
 -- Insert buses
 INSERT INTO buses (plate_number, capacity, gps_device_id) VALUES
@@ -90,14 +92,20 @@ INSERT INTO notifications (user_id, message, type, is_read) VALUES
 (5, 'Diana Smith has boarded the bus', 'boarding', false),
 (5, 'All children dropped off at school safely', 'dropoff', true);
 
+-- Update all students to have outstanding balances
+UPDATE students SET transport_fee = 1500.00, outstanding_balance = 1500.00 WHERE parent_id = 1;
+UPDATE students SET transport_fee = 1200.00, outstanding_balance = 1200.00 WHERE parent_id = 2;
+
 -- Insert payments
-INSERT INTO payments (parent_id, amount, mpesa_receipt, status) VALUES
-(1, 1500.00, 'QJK9X7Y2Z1', 'paid'),       -- Morgan Otieno
-(1, 1500.00, NULL, 'pending'),             -- Morgan Otieno
-(1, 1500.00, 'MPE123ABC', 'paid'),         -- Morgan Otieno
-(2, 1200.00, 'ABC123DEF4', 'paid'),        -- Jane Smith
-(2, 1200.00, NULL, 'pending'),             -- Jane Smith
-(2, 1200.00, 'MPE456DEF', 'paid');         -- Jane Smith
+INSERT INTO payments (parent_id, student_id, amount, mpesa_receipt, status, created_at) VALUES
+-- Morgan Otieno (parent_id=1) - 1 paid, 2 pending
+(1, 1, 1500.00, 'QJK9X7Y2Z1', 'paid', NOW() - INTERVAL '10 days'),
+(1, 1, 1500.00, NULL, 'pending', NOW() - INTERVAL '5 days'),
+(1, 2, 1500.00, NULL, 'pending', NOW() - INTERVAL '2 days'),
+-- Jane Smith (parent_id=2) - 1 paid, 2 pending
+(2, 4, 1200.00, 'ABC123DEF4', 'paid', NOW() - INTERVAL '8 days'),
+(2, 5, 1200.00, NULL, 'pending', NOW() - INTERVAL '3 days'),
+(2, 6, 1200.00, NULL, 'pending', NOW() - INTERVAL '1 day');
 
 -- Insert emergency alerts
 INSERT INTO emergency_alerts (bus_id, location, status) VALUES

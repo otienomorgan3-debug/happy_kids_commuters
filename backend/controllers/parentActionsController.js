@@ -161,6 +161,33 @@ const markChildAbsent = async (req, res) => {
       [student_id, parent_id, trip_id || null, date || new Date().toISOString().split('T')[0], reason || 'Not specified']
     );
 
+    const io = getIO();
+    if (io) {
+      const driverResult = await pool.query(
+        `SELECT u.id as driver_user_id, u.name as driver_name, s.name as student_name
+         FROM students s
+         JOIN trips t ON t.id = $2
+         JOIN drivers d ON d.id = t.driver_id
+         JOIN users u ON u.id = d.user_id
+         WHERE s.id = $1`,
+        [student_id, trip_id || null]
+      );
+      if (driverResult.rows.length > 0) {
+        const driverUser = driverResult.rows[0];
+        const connectedUsers = getConnectedUsers();
+        const driverSocket = connectedUsers[driverUser.driver_user_id];
+        if (driverSocket) {
+          io.to(driverSocket).emit('absence:notify', {
+            student_id,
+            student_name: driverUser.student_name,
+            parent_id,
+            date: date || new Date().toISOString().split('T')[0],
+            reason: reason || 'Not specified'
+          });
+        }
+      }
+    }
+
     res.status(201).json({
       message: 'Child marked as absent successfully',
       absence: result.rows[0]
@@ -233,6 +260,33 @@ const requestPickupChange = async (req, res) => {
        RETURNING *`,
       [student_id, parent_id, old_pickup, new_pickup_location, effective_date || null, reason || null]
     );
+
+    const io = getIO();
+    if (io) {
+      const driverResult = await pool.query(
+        `SELECT u.id as driver_user_id, u.name as driver_name, s.name as student_name
+         FROM students s
+         JOIN trips t ON t.route_id = (SELECT route_id FROM trips WHERE status = 'active' LIMIT 1)
+         JOIN drivers d ON d.id = t.driver_id
+         JOIN users u ON u.id = d.user_id
+         WHERE s.id = $1`,
+        [student_id]
+      );
+      if (driverResult.rows.length > 0) {
+        const driverUser = driverResult.rows[0];
+        const connectedUsers = getConnectedUsers();
+        const driverSocket = connectedUsers[driverUser.driver_user_id];
+        if (driverSocket) {
+          io.to(driverSocket).emit('pickup:change:notify', {
+            student_id,
+            student_name: driverUser.student_name,
+            new_pickup_location,
+            effective_date,
+            reason
+          });
+        }
+      }
+    }
 
     res.status(201).json({
       message: 'Pickup change request submitted. Awaiting admin approval.',
@@ -323,6 +377,65 @@ const getTransportHistory = async (req, res) => {
   }
 };
 
+const getEmergencyAlerts = async (req, res) => {
+  const user_id = req.user.id;
+
+  try {
+    const result = await pool.query(
+      `SELECT ea.*, b.plate_number, u.name as driver_name, r.route_name
+       FROM emergency_alerts ea
+       JOIN buses b ON ea.bus_id = b.id
+       JOIN trips t ON t.bus_id = b.id AND t.status = 'active'
+       JOIN routes r ON t.route_id = r.id
+       JOIN drivers d ON d.id = t.driver_id
+       JOIN users u ON u.id = d.user_id
+       WHERE EXISTS (
+         SELECT 1 FROM students s
+         JOIN parents p ON s.parent_id = p.id
+         WHERE p.user_id = $1
+       )
+       ORDER BY ea.created_at DESC
+       LIMIT 50`,
+      [user_id]
+    );
+
+    res.status(200).json({ alerts: result.rows });
+  } catch (error) {
+    console.error('Get emergency alerts error:', error.message);
+    res.status(500).json({ message: 'Server error getting emergency alerts' });
+  }
+};
+
+const getSchedulePreview = async (req, res) => {
+  const user_id = req.user.id;
+  try {
+    const result = await pool.query(
+      `WITH parent_students AS (
+         SELECT s.id as student_id, s.name as student_name, s.pickup_location
+         FROM students s JOIN parents p ON s.parent_id = p.id WHERE p.user_id = $1
+       )
+       SELECT t.id, t.start_time, t.end_time, t.status,
+              r.route_name, r.estimated_time,
+              b.plate_number, u.name as driver_name,
+              ps.student_name, ps.pickup_location
+       FROM trips t
+       JOIN routes r ON t.route_id = r.id
+       JOIN buses b ON t.bus_id = b.id
+       JOIN users u ON u.id = (SELECT user_id FROM drivers WHERE id = t.driver_id)
+       JOIN route_stops rs ON rs.route_id = r.id
+       JOIN parent_students ps ON 1=1
+       WHERE t.status IN ('active', 'pending')
+       ORDER BY t.start_time ASC
+       LIMIT 20`,
+      [user_id]
+    );
+    res.status(200).json({ schedule: result.rows });
+  } catch (error) {
+    console.error('Get schedule preview error:', error.message);
+    res.status(500).json({ message: 'Server error getting schedule' });
+  }
+};
+
 module.exports = {
   sendMessage,
   getConversation,
@@ -333,4 +446,6 @@ module.exports = {
   requestPickupChange,
   getPickupChangeRequests,
   getTransportHistory,
+  getEmergencyAlerts,
+  getSchedulePreview,
 };

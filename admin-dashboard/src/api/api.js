@@ -56,10 +56,13 @@ export const getAllRoutes = () => API.get('/admin/routes');
 export const addRoute = (data) => API.post('/admin/routes', data);
 export const updateRoute = (id, data) => API.put(`/admin/routes/${id}`, data);
 export const deleteRoute = (id) => API.delete(`/admin/routes/${id}`);
+export const optimizeRoute = (id) => API.post(`/admin/routes/${id}/optimize`);
 
 // Schools
 export const getAllSchools = () => API.get('/admin/schools');
 export const addSchool = (data) => API.post('/admin/schools', data);
+export const updateSchool = (id, data) => API.put(`/admin/schools/${id}`, data);
+export const deleteSchool = (id) => API.delete(`/admin/schools/${id}`);
 
 // Reports
 export const getAttendanceReport = (date) => API.get(`/admin/reports/attendance?date=${date}`);
@@ -68,6 +71,9 @@ export const getTripReport = () => API.get('/admin/reports/trips');
 // Payments
 export const getPayments = () => API.get('/admin/payments');
 export const getPaymentStats = () => API.get('/admin/payments/stats');
+export const generateInvoices = (data) => API.post('/admin/invoices/generate', data);
+export const sendPaymentReminders = (data) => API.post('/admin/reminders/send', data);
+export const processRefund = (data) => API.post('/admin/refund', data);
 
 // Tracking
 export const getAllBusLocations = () => API.get('/tracking/all');
