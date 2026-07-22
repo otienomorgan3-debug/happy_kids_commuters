@@ -51,12 +51,13 @@ export const removeToken = () => AsyncStorage.removeItem('hkcs_token');
 export const loginUser = (data) => API.post('/auth/login', data);
 export const registerUser = (data) => API.post('/auth/register', data);
 export const getMe = () => API.get('/auth/me');
-
-// Students
 export const getMyStudents = () => API.get('/students/my');
-export const addStudent = (data) => API.post('/students', data);
-export const getSchools = () => API.get('/students/schools');
-export const getAssignedStudents = () => API.get('/students/assigned');
+
+// Attendance / driver
+export const startTrip = (data) => API.post('/attendance/trip/start', data);
+export const endTrip = (data) => API.post('/attendance/trip/end', data);
+export const getTripAttendance = (tripId) => API.get(`/attendance/trip/${tripId}`);
+export const getMyAssignment = () => API.get('/attendance/driver/assignment');
 
 // Tracking
 export const getBusLocation = (bus_id) => API.get(`/tracking/bus/${bus_id}`);
@@ -68,12 +69,8 @@ export const getRouteById = (id) => API.get(`/routes/${id}`);
 export const getRouteEta = (id, data) => API.post(`/routes/${id}/eta`, data);
 
 // Attendance
-export const startTrip = (data) => API.post('/attendance/trip/start', data);
-export const endTrip = (data) => API.post('/attendance/trip/end', data);
 export const markBoarded = (data) => API.post('/attendance/boarded', data);
 export const markDropped = (data) => API.post('/attendance/dropped', data);
-export const getTripAttendance = (id) => API.get(`/attendance/trip/${id}`);
-
 // Notifications
 export const getNotifications = () => API.get('/notifications');
 export const markAsRead = (id) => API.put(`/notifications/${id}/read`);

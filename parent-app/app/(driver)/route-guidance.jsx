@@ -27,13 +27,12 @@ export default function RouteGuidance() {
       setStudents(studentsRes.data.students || []);
       setTripId(studentsRes.data.trip_id);
 
-      if (studentsRes.data.trip_id && studentsRes.data.bus_id) {
-        const routeRes = await getRouteById(studentsRes.data.bus_id);
+      if (studentsRes.data.trip_id && studentsRes.data.route_id) {
+        const routeRes = await getRouteById(studentsRes.data.route_id);
         if (routeRes.data.route) {
           setRoute(routeRes.data.route);
           const stops = routeRes.data.route.stops || [];
           if (stops.length > 0) {
-            // Load ETA for each stop
             const etaPromises = stops.map(stop =>
               getRouteEta(routeRes.data.route.id, {
                 latitude: stop.latitude,

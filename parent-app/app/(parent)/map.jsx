@@ -1,8 +1,8 @@
 import { View, Text, StyleSheet, RefreshControl, ScrollView, ActivityIndicator } from 'react-native';
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useFocusEffect, useRouter } from 'expo-router';
-import MapView, { Marker } from 'react-native-maps';
 import { io } from 'socket.io-client';
+import Map from '../../components/Map';
 import { SOCKET_URL, getMyStudents, getRouteById, getRouteEta, removeToken } from '../../constants/api';
 
 const NAIROBI = {
@@ -28,30 +28,18 @@ export default function MapScreen() {
       const studentsRes = await getMyStudents();
       const nextStudents = studentsRes.data.students || [];
       setStudents(nextStudents);
-
-      if (nextStudents.length === 0) {
-        setLoading(false);
-        return;
-      }
+      if (nextStudents.length === 0) { setLoading(false); return; }
 
       const busIds = new Set();
       const routeIds = new Set();
-
       nextStudents.forEach(student => {
-        if (student.bus_id) {
-          busIds.add(student.bus_id);
-        }
-        if (student.route_id) {
-          routeIds.add(student.route_id);
-        }
+        if (student.bus_id) busIds.add(student.bus_id);
+        if (student.route_id) routeIds.add(student.route_id);
       });
-
-      busIds.forEach(bus_id => {
-        socketRef.current?.emit('parent:watch', { bus_id });
-      });
+      busIds.forEach(bus_id => socketRef.current?.emit('parent:watch', { bus_id }));
 
       const loadedRoutes = {};
-      await Promise.all(Array.from(routeIds).map(async (routeId) => {
+      await Promise.all(Array.from(routeIds).map(async routeId => {
         try {
           const res = await getRouteById(routeId);
           loadedRoutes[routeId] = res.data.route;
@@ -60,8 +48,6 @@ export default function MapScreen() {
         }
       }));
       setRoutesById(loadedRoutes);
-
-      console.log('Parent students:', nextStudents);
     } catch (err) {
       console.error('Error fetching student data:', err.message);
       if (err.response?.status === 401) {
@@ -74,13 +60,11 @@ export default function MapScreen() {
   }, [router]);
 
   const refreshRouteEta = useCallback(async (bus_id, bus_lat, bus_lng) => {
-    const routeId = students.find(student => student.bus_id === bus_id && student.route_id)?.route_id;
-
+    const routeId = students.find(s => s.bus_id === bus_id && s.route_id)?.route_id;
     if (!routeId) return;
-
     try {
       const res = await getRouteEta(routeId, { bus_lat, bus_lng });
-      setEtaByRouteId(previous => ({ ...previous, [routeId]: res.data }));
+      setEtaByRouteId(prev => ({ ...prev, [routeId]: res.data }));
     } catch (error) {
       console.error('ETA error:', error.message);
     }
@@ -88,13 +72,10 @@ export default function MapScreen() {
 
   useEffect(() => {
     socketRef.current = io(SOCKET_URL);
-    socketRef.current.on('connect', () => {
-      setConnected(true);
-      console.log('Socket connected to tracking server');
-    });
+    socketRef.current.on('connect', () => setConnected(true));
     socketRef.current.on('disconnect', () => setConnected(false));
     socketRef.current.on('bus:location', (data) => {
-      setBusLocations(previous => ({ ...previous, [data.bus_id]: data }));
+      setBusLocations(prev => ({ ...prev, [data.bus_id]: data }));
       refreshRouteEta(data.bus_id, data.latitude, data.longitude);
     });
     socketRef.current.on('emergency:alert', (data) => {
@@ -103,59 +84,40 @@ export default function MapScreen() {
     return () => socketRef.current?.disconnect();
   }, [refreshRouteEta]);
 
-  useFocusEffect(
-    useCallback(() => {
-      fetchBusData();
-    }, [fetchBusData])
-  );
+  useFocusEffect(useCallback(() => { fetchBusData(); }, [fetchBusData]));
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
     await fetchBusData();
     setRefreshing(false);
-  }, [fetchBusData]);
+  }, [fetchData]);
 
   const buses = Object.values(busLocations);
 
   const getStopEtaForStudent = (student) => {
     if (!student.route_id) return null;
-
     const route = etaByRouteId[student.route_id];
     if (!route?.stops_with_eta?.length) return null;
-
     const pickupText = (student.pickup_location || '').toLowerCase();
     const matchedStop = route.stops_with_eta.find(stop => {
       const stopName = (stop.name || stop.stop_name || '').toLowerCase();
       const stopLocation = (stop.location || '').toLowerCase();
-      return (
-        pickupText.includes(stopName) ||
-        stopName.includes(pickupText) ||
-        pickupText.includes(stopLocation) ||
-        stopLocation.includes(pickupText)
-      );
+      return pickupText.includes(stopName) || stopName.includes(pickupText) || pickupText.includes(stopLocation) || stopLocation.includes(pickupText);
     });
-
     return matchedStop || route.stops_with_eta[0] || null;
   };
 
   if (loading) {
     return (
       <View style={styles.container}>
-        <View style={styles.header}>
-          <Text style={styles.title}>Live Bus Tracking</Text>
-        </View>
-        <View style={styles.centered}>
-          <ActivityIndicator size="large" color="#4a6fa5" />
-        </View>
+        <View style={styles.header}><Text style={styles.title}>Live Bus Tracking</Text></View>
+        <View style={styles.centered}><ActivityIndicator size="large" color="#4a6fa5" /></View>
       </View>
     );
   }
 
   return (
-    <ScrollView
-      style={styles.container}
-      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
-    >
+    <ScrollView style={styles.container} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}>
       <View style={styles.header}>
         <Text style={styles.title}>Live Bus Tracking</Text>
         <View style={styles.statusRow}>
@@ -164,23 +126,11 @@ export default function MapScreen() {
         </View>
       </View>
 
-      <MapView style={styles.map} initialRegion={NAIROBI}>
-        {buses.map(bus => (
-          <Marker
-            key={bus.bus_id}
-            coordinate={{ latitude: bus.latitude, longitude: bus.longitude }}
-            title={`Bus ${bus.bus_id}`}
-            description={`Updated: ${new Date(bus.timestamp).toLocaleTimeString()}`}
-          >
-          </Marker>
-        ))}
-      </MapView>
+      <Map buses={buses} routesById={routesById} />
 
       <View style={styles.infoBar}>
         <Text style={styles.infoText}>
-          {buses.length > 0
-            ? `${buses.length} bus${buses.length > 1 ? 'es' : ''} active`
-            : 'No buses currently active — pull to refresh'}
+          {buses.length > 0 ? `${buses.length} bus${buses.length > 1 ? 'es' : ''} active` : 'No buses currently active — pull to refresh'}
         </Text>
       </View>
 
@@ -190,9 +140,7 @@ export default function MapScreen() {
           <View key={student.id} style={styles.studentCard}>
             <View style={styles.studentCardTop}>
               <View style={styles.studentAvatar}>
-                <Text style={styles.studentAvatarText}>
-                  {student.name.charAt(0).toUpperCase()}
-                </Text>
+                <Text style={styles.studentAvatarText}>{student.name.charAt(0).toUpperCase()}</Text>
               </View>
               <View style={styles.studentInfo}>
                 <Text style={styles.studentName}>{student.name}</Text>
@@ -200,37 +148,27 @@ export default function MapScreen() {
               </View>
             </View>
             <Text style={styles.locationValue}>📍 Pickup: {student.pickup_location}</Text>
-            <Text style={styles.locationValue}>
-              {etaStop ? `⏱ ETA to stop: ${etaStop.eta_display || `${etaStop.eta_minutes} min`}` : '⏱ ETA pending'}
-            </Text>
+            <Text style={styles.locationValue}>{etaStop ? `⏱ ETA to stop: ${etaStop.eta_display || `${etaStop.eta_minutes} min`}` : '⏱ ETA pending'}</Text>
             {student.route_id && routesById[student.route_id] && (
-              <Text style={styles.routeHint}>
-                Route: {routesById[student.route_id].route_name}
-              </Text>
+              <Text style={styles.routeHint}>Route: {routesById[student.route_id].route_name}</Text>
             )}
           </View>
         );
       })}
 
       {buses.length > 0 && buses.map(bus => {
-        const routeId = students.find(student => student.bus_id === bus.bus_id && student.route_id)?.route_id;
+        const routeId = students.find(s => s.bus_id === bus.bus_id && s.route_id)?.route_id;
         const etaData = routeId ? etaByRouteId[routeId] : null;
         return (
           <View key={bus.bus_id} style={styles.busRow}>
             <View style={styles.busRowInfo}>
               <Text style={styles.busRowTitle}>Bus {bus.bus_id}</Text>
-              <Text style={styles.busRowSub}>
-                {bus.latitude.toFixed(4)}, {bus.longitude.toFixed(4)}
-              </Text>
+              <Text style={styles.busRowSub}>{bus.latitude.toFixed(4)}, {bus.longitude.toFixed(4)}</Text>
               {etaData?.stops_with_eta?.length > 0 && (
-                <Text style={styles.busRowEta}>
-                  Next stop: {etaData.stops_with_eta[0].name || etaData.stops_with_eta[0].stop_name} • {etaData.stops_with_eta[0].eta_display}
-                </Text>
+                <Text style={styles.busRowEta}>Next stop: {etaData.stops_with_eta[0].name || etaData.stops_with_eta[0].stop_name} • {etaData.stops_with_eta[0].eta_display}</Text>
               )}
             </View>
-            <Text style={styles.busRowTime}>
-              {new Date(bus.timestamp).toLocaleTimeString()}
-            </Text>
+            <Text style={styles.busRowTime}>{new Date(bus.timestamp).toLocaleTimeString()}</Text>
           </View>
         );
       })}
@@ -241,8 +179,7 @@ export default function MapScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#f8f9fa' },
   header: {
-    backgroundColor: '#4a6fa5', paddingTop: 56,
-    paddingBottom: 16, paddingHorizontal: 20,
+    backgroundColor: '#4a6fa5', paddingTop: 56, paddingBottom: 16, paddingHorizontal: 20,
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
   },
   title: { color: '#fff', fontSize: 18, fontWeight: 'bold' },
@@ -252,27 +189,17 @@ const styles = StyleSheet.create({
   map: { flex: 1, minHeight: 300 },
   busMarker: { fontSize: 32 },
   infoBar: {
-    backgroundColor: '#fff', padding: 12,
-    alignItems: 'center', borderTopWidth: 1, borderTopColor: '#e2e8f0'
+    backgroundColor: '#fff', padding: 12, alignItems: 'center', borderTopWidth: 1, borderTopColor: '#e2e8f0'
   },
   infoText: { color: '#718096', fontSize: 13 },
   studentCard: {
-    backgroundColor: '#fff',
-    marginHorizontal: 16,
-    marginTop: 12,
-    borderRadius: 16,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: '#e2e8f0'
+    backgroundColor: '#fff', marginHorizontal: 16, marginTop: 12,
+    borderRadius: 16, padding: 16, borderWidth: 1, borderColor: '#e2e8f0'
   },
   studentCardTop: { flexDirection: 'row', alignItems: 'center', marginBottom: 10 },
   studentAvatar: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: '#ebf4ff',
-    alignItems: 'center',
-    justifyContent: 'center'
+    width: 44, height: 44, borderRadius: 22,
+    backgroundColor: '#ebf4ff', alignItems: 'center', justifyContent: 'center'
   },
   studentAvatarText: { fontSize: 18, fontWeight: 'bold', color: '#4a6fa5' },
   studentInfo: { marginLeft: 12, flex: 1 },

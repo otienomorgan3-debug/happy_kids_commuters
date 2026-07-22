@@ -28,7 +28,7 @@ cd happy_kids_commuter_system
 
 ## 2. Database Setup
 
-### Option A: Using Docker (Recommended - Fastest)
+### Option A: Using Docker
 
 ```bash
 # Start only the PostgreSQL container
@@ -162,7 +162,7 @@ Scan the QR code with Expo Go on your phone, or press `a` for Android emulator /
 
 ---
 
-## 7. Docker (Full Stack - Fastest Setup)
+## 7. Docker
 
 For the quickest full-stack setup on a new machine:
 
@@ -309,6 +309,6 @@ happy_kids_commuters/
 │   ├── API.md
 │   ├── ARCHITECTURE.md
 │   ├── ngroksetup.md
-│   └── setup.md             # <-- This file
+│   └── setup.md
 ├── docker-compose.yml
 └── README.md

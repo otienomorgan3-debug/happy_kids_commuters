@@ -64,13 +64,13 @@ export default function Landing() {
         {/* Feature highlights */}
         <View style={styles.features}>
           {[
-            { icon: '📍', text: 'Live GPS tracking' },
-            { icon: '🔔', text: 'Instant notifications' },
-            { icon: '✅', text: 'Attendance monitoring' },
+            { label: 'Live GPS tracking', accent: '#4a6fa5' },
+            { label: 'Instant notifications', accent: '#2d6a4f' },
+            { label: 'Attendance monitoring', accent: '#d97706' },
           ].map((f, i) => (
             <View key={i} style={styles.featureItem}>
-              <Text style={styles.featureIcon}>{f.icon}</Text>
-              <Text style={styles.featureText}>{f.text}</Text>
+              <View style={[styles.featureAccent, { backgroundColor: f.accent }]} />
+              <Text style={styles.featureText}>{f.label}</Text>
             </View>
           ))}
         </View>
@@ -111,7 +111,7 @@ export default function Landing() {
       {/* Footer */}
       <View style={styles.footer}>
         <Text style={styles.footerText}>
-          Keeping children safe on every journey 🌟
+          Keeping children safe on every journey
         </Text>
       </View>
     </SafeAreaView>
@@ -191,12 +191,13 @@ const styles = StyleSheet.create({
   },
   features: {
     flexDirection: 'row',
-    justifyContent: 'space-around',
+    justifyContent: 'space-between',
     backgroundColor: '#fff',
     borderRadius: 16,
-    paddingVertical: 16,
-    paddingHorizontal: 8,
+    paddingVertical: 18,
+    paddingHorizontal: 12,
     marginBottom: 28,
+    gap: 10,
     shadowColor: '#000',
     shadowOpacity: 0.05,
     shadowRadius: 8,
@@ -206,12 +207,19 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     flex: 1,
   },
-  featureIcon: { fontSize: 22, marginBottom: 6 },
+  featureAccent: {
+    width: 14,
+    height: 14,
+    borderRadius: 7,
+    marginBottom: 10,
+  },
   featureText: {
     fontSize: 11,
     color: '#4a5568',
     textAlign: 'center',
-    fontWeight: '500',
+    fontWeight: '700',
+    textTransform: 'uppercase',
+    letterSpacing: 0.4,
   },
   buttonsSection: {
     gap: 16,

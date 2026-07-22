@@ -10,17 +10,16 @@ const SOCKET_URL = process.env.SOCKET_URL || 'http://localhost:5000';
 
 // Route stop coordinates from seed data
 const ROUTE_STOPS = {
-  1: [ // Karen Morning Route
-    { name: 'Karen Stage', lat: -1.3197, lng: 36.7258 },
-    { name: 'Kabwagi', lat: -1.3120, lng: 36.7280 },
-    { name: 'Sunshine School', lat: -1.2550, lng: 36.8200 },
-  ],
-  2: [ // Kitengela Evening Route
-    { name: 'Kitengela Estate', lat: -1.4833, lng: 36.9667 },
-    { name: 'Kitengela Stage', lat: -1.4750, lng: 36.9700 },
-    { name: 'Sunshine School', lat: -1.2550, lng: 36.8200 },
-  ],
-};
+   1: [ // Karen Morning Route (Karen Stage pickup for all children)
+     { name: 'Karen Stage', lat: -1.3197, lng: 36.7258 },
+     { name: 'Sunshine School', lat: -1.3120, lng: 36.7280 },
+   ],
+   2: [ // Kitengela Evening Route (Kitengela Stage pickup for all children)
+     { name: 'Kitengela Estate', lat: -1.4833, lng: 36.9667 },
+     { name: 'Kitengela Stage', lat: -1.4750, lng: 36.9700 },
+     { name: 'Sunshine School', lat: -1.3120, lng: 36.7280 },
+   ],
+  };
 
 // Interpolate between two points
 function interpolate(p1, p2, t) {

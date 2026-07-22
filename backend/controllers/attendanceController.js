@@ -233,10 +233,35 @@ const getTripAttendance = async (req, res) => {
   }
 };
 
+const getMyAssignment = async (req, res) => {
+  const user_id = req.user.id;
+  try {
+    const result = await pool.query(
+      `SELECT d.id as driver_id, d.license_number, b.id as bus_id, b.plate_number, b.capacity,
+              r.id as route_id, r.route_name, r.estimated_time
+       FROM drivers d
+       JOIN buses b ON d.bus_id = b.id
+       LEFT JOIN trips t ON t.bus_id = b.id AND t.status = 'active'
+       LEFT JOIN routes r ON r.id = t.route_id
+       WHERE d.user_id = $1
+       LIMIT 1`,
+      [user_id]
+    );
+    if (result.rows.length === 0) {
+      return res.status(404).json({ message: 'No driver assignment found' });
+    }
+    res.status(200).json({ assignment: result.rows[0] });
+  } catch (error) {
+    console.error('Get assignment error:', error.message);
+    res.status(500).json({ message: 'Server error getting assignment' });
+  }
+};
+
 module.exports = {
   startTrip,
   endTrip,
   studentBoarded,
   studentDropped,
-  getTripAttendance
+  getTripAttendance,
+  getMyAssignment
 };

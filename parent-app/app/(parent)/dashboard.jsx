@@ -4,7 +4,6 @@ import {
 } from 'react-native';
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter, useFocusEffect } from 'expo-router';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { getMe, getMyStudents, getNotifications, removeToken } from '../../constants/api';
 
 export default function Dashboard() {
@@ -22,13 +21,15 @@ export default function Dashboard() {
         getNotifications()
       ]);
       setUser(meRes.data.user);
-      setStudents(studentsRes.data.students);
-      setUnread(notifRes.data.unread);
+      setStudents(studentsRes.data?.students || []);
+      setUnread(notifRes.data?.unread || 0);
     } catch (err) {
+      console.error('Dashboard fetch error:', err);
       if (err.response?.status === 401) {
         await removeToken();
         router.replace('/(auth)/parent-login');
       }
+      setStudents([]);
     }
   }, [router]);
 
@@ -112,66 +113,60 @@ export default function Dashboard() {
             <Text style={styles.emptyActionText}>+ Add Child</Text>
           </TouchableOpacity>
         </View>
-      ) : students.map(student => (
-        <View key={student.id} style={styles.studentCard}>
-          <View style={styles.studentHeader}>
-            <View style={styles.avatar}>
-              <Text style={styles.avatarText}>
-                {student.name.charAt(0).toUpperCase()}
-              </Text>
+      ) : (
+        <View style={styles.studentsGrid}>
+          {students.map(student => (
+            <View key={student.id} style={styles.studentCard}>
+              <View style={styles.studentHeader}>
+                <View style={styles.avatar}>
+                  <Text style={styles.avatarText}>
+                    {student.name.charAt(0).toUpperCase()}
+                  </Text>
+                </View>
+                <View style={styles.studentInfo}>
+                  <Text style={styles.studentName} numberOfLines={1}>{student.name}</Text>
+                  <Text style={styles.schoolName} numberOfLines={1}>{student.school_name}</Text>
+                </View>
+              </View>
+
+              <View style={[styles.statusBadge, { backgroundColor: getStatusColor(student.status) }]}>
+                <Text style={styles.statusText} numberOfLines={1}>{getStatusText(student.status)}</Text>
+              </View>
+
+              <Text style={styles.locationValue} numberOfLines={1}>📍 {student.pickup_location}</Text>
+
+              <TouchableOpacity
+                style={styles.trackButton}
+                onPress={() => router.push('/(parent)/map')}
+              >
+                <Text style={styles.trackButtonText}>Track</Text>
+              </TouchableOpacity>
             </View>
-            <View style={styles.studentInfo}>
-              <Text style={styles.studentName}>{student.name}</Text>
-              <Text style={styles.schoolName}>{student.school_name}</Text>
-            </View>
-          </View>
-
-          <View style={[styles.statusBadge, { backgroundColor: getStatusColor(student.status) }]}>
-            <Text style={styles.statusText}>{getStatusText(student.status)}</Text>
-          </View>
-
-          <View style={styles.locationRow}>
-            <Text style={styles.locationLabel}>📍 Pickup:</Text>
-            <Text style={styles.locationValue}>{student.pickup_location}</Text>
-          </View>
-
-          <View style={styles.locationRow}>
-            <Text style={styles.locationLabel}>💳 Fees:</Text>
-            <Text style={styles.locationValue}>
-              {getPaymentText(student.payment_status)} · KES {Number(student.outstanding_balance || 0).toFixed(2)}
-            </Text>
-          </View>
-
-          <TouchableOpacity
-            style={styles.trackButton}
-            onPress={() => router.push('/(parent)/map')}
-          >
-            <Text style={styles.trackButtonText}>Track Bus</Text>
-          </TouchableOpacity>
+          ))}
         </View>
-      ))}
+      )}
 
       {/* Quick Actions */}
       <Text style={styles.sectionTitle}>Quick Actions</Text>
       <View style={styles.actionsGrid}>
         {[
-          { icon: 'map', label: 'Live Map', route: '/(parent)/map' },
-          { icon: 'message-text-outline', label: 'Chat', route: '/(parent)/chat' },
-          { icon: 'credit-card-outline', label: 'Payments', route: '/(parent)/payments' },
-          { icon: 'bell-alert', label: 'Alerts', route: '/(parent)/notifications' },
-          { icon: 'alarm-light', label: 'Emergency', route: '/(parent)/emergency-alerts' },
-          { icon: 'calendar-clock', label: 'Schedule', route: '/(parent)/schedule-preview' },
-          { icon: 'account', label: 'Profile', route: '/(parent)/profile' },
-          { icon: 'history', label: 'Transport History', route: '/(parent)/transport-history' },
-          { icon: 'close-circle-outline', label: 'Mark Absent', route: '/(parent)/mark-absent' },
-          { icon: 'map-marker-edit', label: 'Change Pickup', route: '/(parent)/change-pickup' },
+          { label: 'Live Map', route: '/(parent)/map', accent: '#4a6fa5' },
+          { label: 'Chat', route: '/(parent)/chat', accent: '#2d6a4f' },
+          { label: 'Payments', route: '/(parent)/payments', accent: '#d97706' },
+          { label: 'Alerts', route: '/(parent)/notifications', accent: '#dc2626' },
+          { label: 'Emergency', route: '/(parent)/emergency-alerts', accent: '#991b1b' },
+          { label: 'Schedule', route: '/(parent)/schedule-preview', accent: '#4a6fa5' },
+          { label: 'Profile', route: '/(parent)/profile', accent: '#718096' },
+          { label: 'Transport History', route: '/(parent)/transport-history', accent: '#4a5568' },
+          { label: 'Mark Absent', route: '/(parent)/mark-absent', accent: '#c2410c' },
+          { label: 'Change Pickup', route: '/(parent)/change-pickup', accent: '#0369a1' },
         ].map(action => (
           <TouchableOpacity
             key={action.label}
             style={styles.actionCard}
             onPress={() => router.push(action.route)}
           >
-            <MaterialCommunityIcons name={action.icon} size={28} color="#4a6fa5" />
+            <View style={[styles.actionAccent, { backgroundColor: action.accent }]} />
             <Text style={styles.actionLabel}>{action.label}</Text>
           </TouchableOpacity>
         ))}
@@ -216,29 +211,31 @@ const styles = StyleSheet.create({
   },
   addChildButtonText: { color: '#fff', fontSize: 12, fontWeight: '700' },
   studentCard: {
-    backgroundColor: '#fff', borderRadius: 16, padding: 16,
-    marginHorizontal: 16, marginBottom: 12,
-    shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 8, elevation: 2
+    backgroundColor: '#fff', borderRadius: 12, padding: 10,
+    flex: 1, minWidth: '30%', maxWidth: '32%',
+    shadowColor: '#000', shadowOpacity: 0.04, shadowRadius: 6, elevation: 1
   },
-  studentHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 12 },
+  studentHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 8 },
   avatar: {
-    width: 48, height: 48, borderRadius: 24,
+    width: 32, height: 32, borderRadius: 16,
     backgroundColor: '#ebf4ff', alignItems: 'center', justifyContent: 'center'
   },
-  avatarText: { fontSize: 20, fontWeight: 'bold', color: '#4a6fa5' },
-  studentInfo: { marginLeft: 12, flex: 1 },
-  studentName: { fontSize: 16, fontWeight: 'bold', color: '#2d3748' },
-  schoolName: { fontSize: 13, color: '#718096', marginTop: 2 },
-  statusBadge: { borderRadius: 10, padding: 10, marginBottom: 10 },
-  statusText: { fontSize: 14, fontWeight: '600', color: '#2d3748' },
-  locationRow: { flexDirection: 'row', marginBottom: 4 },
-  locationLabel: { fontSize: 13, color: '#718096', marginRight: 4 },
-  locationValue: { fontSize: 13, color: '#2d3748', flex: 1 },
+  avatarText: { fontSize: 14, fontWeight: 'bold', color: '#4a6fa5' },
+  studentInfo: { marginLeft: 8, flex: 1 },
+  studentName: { fontSize: 12, fontWeight: '700', color: '#2d3748' },
+  schoolName: { fontSize: 10, color: '#718096', marginTop: 1 },
+  statusBadge: { borderRadius: 8, padding: 6, marginBottom: 6, alignSelf: 'flex-start' },
+  statusText: { fontSize: 10, fontWeight: '700', color: '#2d3748' },
+  locationValue: { fontSize: 10, color: '#4a5568', marginBottom: 6 },
   trackButton: {
-    backgroundColor: '#4a6fa5', borderRadius: 10,
-    paddingVertical: 10, alignItems: 'center', marginTop: 10
+    backgroundColor: '#4a6fa5', borderRadius: 8,
+    paddingVertical: 6, alignItems: 'center', marginTop: 'auto'
   },
-  trackButtonText: { color: '#fff', fontWeight: '600', fontSize: 14 },
+  trackButtonText: { color: '#fff', fontWeight: '700', fontSize: 10 },
+  studentsGrid: {
+    flexDirection: 'row', flexWrap: 'wrap',
+    marginHorizontal: 12, marginBottom: 24, gap: 10
+  },
   emptyCard: {
     backgroundColor: '#fff', borderRadius: 16, padding: 32,
     marginHorizontal: 16, alignItems: 'center',
@@ -262,7 +259,11 @@ const styles = StyleSheet.create({
   actionCard: {
     width: '23%', minWidth: 72, backgroundColor: '#fff', borderRadius: 16,
     padding: 12, alignItems: 'center', justifyContent: 'center',
-    shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 8, elevation: 2
+    shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 8, elevation: 2,
+    flexDirection: 'column', gap: 8,
   },
-  actionLabel: { fontSize: 10, fontWeight: '600', color: '#2d3748', marginTop: 6, textAlign: 'center' },
+  actionAccent: {
+    width: 18, height: 4, borderRadius: 2,
+  },
+  actionLabel: { fontSize: 10, fontWeight: '700', color: '#2d3748', textAlign: 'center', textTransform: 'uppercase', letterSpacing: 0.3 },
 });

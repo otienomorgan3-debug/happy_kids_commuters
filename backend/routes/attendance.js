@@ -5,7 +5,8 @@ const {
   endTrip,
   studentBoarded,
   studentDropped,
-  getTripAttendance
+  getTripAttendance,
+  getMyAssignment
 } = require('../controllers/attendanceController');
 const { protect, restrictTo } = require('../middleware/authMiddleware');
 
@@ -19,5 +20,8 @@ router.post('/dropped', protect, restrictTo('driver'), studentDropped);
 
 // View attendance (admin + driver)
 router.get('/trip/:trip_id', protect, getTripAttendance);
+
+// Driver assignment
+router.get('/driver/assignment', protect, restrictTo('driver'), getMyAssignment);
 
 module.exports = router;

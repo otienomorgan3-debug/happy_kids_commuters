@@ -114,7 +114,7 @@ const getStudentsForDriver = async (req, res) => {
 
     // Get active trip for this bus
     const tripResult = await pool.query(
-      `SELECT id FROM trips 
+      `SELECT id, route_id FROM trips 
        WHERE bus_id = $1 AND status = 'active'
        ORDER BY start_time DESC LIMIT 1`,
       [bus_id]
@@ -150,6 +150,7 @@ const getStudentsForDriver = async (req, res) => {
     res.status(200).json({
       trip_id,
       bus_id,
+      route_id: tripResult.rows[0].route_id || null,
       students: result.rows
     });
 

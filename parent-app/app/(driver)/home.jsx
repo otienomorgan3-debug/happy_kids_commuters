@@ -8,7 +8,7 @@ import * as Location from 'expo-location';
 import { io } from 'socket.io-client';
 import {
   getMe, startTrip, endTrip, removeToken, SOCKET_URL,
-  getRoutes, getRouteById
+  getRouteById, getMyAssignment
 } from '../../constants/api';
 
 export default function DriverHome() {
@@ -17,8 +17,7 @@ export default function DriverHome() {
   const [location, setLocation] = useState(null);
   const [broadcasting, setBroadcasting] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
-  const [routes, setRoutes] = useState([]);
-  const [selectedRouteId, setSelectedRouteId] = useState('');
+  const [assignment, setAssignment] = useState(null);
   const [activeRoute, setActiveRoute] = useState(null);
   const socketRef = useRef(null);
   const locationRef = useRef(null);
@@ -34,22 +33,23 @@ export default function DriverHome() {
     }
   }, [router]);
 
-  const fetchRoutes = useCallback(async () => {
+  const fetchAssignment = useCallback(async () => {
     try {
-      const res = await getRoutes();
-      const availableRoutes = res.data.routes || [];
-      setRoutes(availableRoutes);
-      if (availableRoutes.length > 0) {
-        setSelectedRouteId(String(availableRoutes[0].id));
+      const assignmentRes = await getMyAssignment();
+      setAssignment(assignmentRes.data?.assignment || null);
+      const routeId = assignmentRes.data?.assignment?.route_id;
+      if (routeId) {
+        const routeRes = await getRouteById(routeId).catch(() => ({ data: {} }));
+        setActiveRoute(routeRes.data?.route || null);
       }
     } catch {
-      console.log('Failed to load routes');
+      console.log('Failed to load assignment');
     }
   }, []);
 
   useEffect(() => {
     fetchUser();
-    fetchRoutes();
+    fetchAssignment();
     socketRef.current = io(SOCKET_URL);
     socketRef.current.on('connect', () => console.log('Socket connected'));
     requestLocationPermission();
@@ -57,7 +57,7 @@ export default function DriverHome() {
       socketRef.current?.disconnect();
       if (locationRef.current) locationRef.current.remove();
     };
-  }, [fetchUser, fetchRoutes]);
+  }, [fetchUser, fetchAssignment]);
 
   const requestLocationPermission = async () => {
     const { status } = await Location.requestForegroundPermissionsAsync();
@@ -67,13 +67,13 @@ export default function DriverHome() {
   };
 
   const handleStartTrip = async () => {
-    if (!selectedRouteId) {
-      Alert.alert('Select route', 'Please select a route before starting the trip.');
+    if (!assignment?.route_id) {
+      Alert.alert('No route assigned', 'You do not have an assigned route yet.');
       return;
     }
 
     try {
-      const res = await startTrip({ route_id: Number(selectedRouteId) });
+      const res = await startTrip({ route_id: assignment.route_id });
       const newTrip = res.data.trip;
       setTrip(newTrip);
       socketRef.current?.emit('driver:join', { bus_id: newTrip.bus_id });
@@ -145,9 +145,9 @@ export default function DriverHome() {
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
     await fetchUser();
-    await fetchRoutes();
+    await fetchAssignment();
     setRefreshing(false);
-  }, [fetchUser, fetchRoutes]);
+  }, [fetchUser, fetchAssignment]);
 
   return (
     <ScrollView
@@ -184,33 +184,20 @@ export default function DriverHome() {
       </View>
 
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Route Selection</Text>
+        <Text style={styles.sectionTitle}>Route</Text>
         <View style={styles.routeCard}>
-          <Text style={styles.routeLabel}>Choose the optimized route before starting</Text>
-          <View style={styles.routeOptions}>
-            {routes.map(route => (
-              <TouchableOpacity
-                key={route.id}
-                style={[
-                  styles.routeOption,
-                  selectedRouteId === String(route.id) && styles.routeOptionSelected,
-                ]}
-                onPress={() => setSelectedRouteId(String(route.id))}
-              >
-                <Text
-                  style={[
-                    styles.routeOptionText,
-                    selectedRouteId === String(route.id) && styles.routeOptionTextSelected,
-                  ]}
-                >
-                  {route.route_name}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </View>
+          {assignment?.route_name ? (
+            <>
+              <Text style={styles.routeTitle}>{assignment.route_name}</Text>
+              <Text style={styles.routeSub}>
+                {assignment.plate_number} • Est. {assignment.estimated_time || '—'} min
+              </Text>
+            </>
+          ) : (
+            <Text style={styles.routeSub}>No route assigned yet</Text>
+          )}
           {activeRoute && (
             <View style={styles.routeSummary}>
-              <Text style={styles.routeSummaryTitle}>{activeRoute.route_name}</Text>
               {(activeRoute.stops || []).map(stop => (
                 <Text key={stop.id} style={styles.routeStopText}>
                   {stop.stop_order}. {stop.stop_name}
@@ -244,17 +231,17 @@ export default function DriverHome() {
         <Text style={styles.sectionTitle}>Quick Actions</Text>
         <View style={styles.actionsGrid}>
           {[
-            { label: 'Students', route: '/(driver)/students', emoji: '👦' },
-            { label: 'Route Guide', route: '/(driver)/route-guidance', emoji: '🗺️' },
-            { label: 'Attendance', route: '/(driver)/attendance', emoji: '✅' },
-            { label: 'SOS', route: '/(driver)/sos', emoji: '🚨' },
+            { label: 'Students', route: '/(driver)/students' },
+            { label: 'Route Guide', route: '/(driver)/route-guidance' },
+            { label: 'Attendance', route: '/(driver)/attendance' },
+            { label: 'SOS', route: '/(driver)/sos' },
           ].map(action => (
             <TouchableOpacity
               key={action.label}
               style={styles.actionCard}
               onPress={() => router.push(action.route)}
             >
-              <Text style={styles.actionEmoji}>{action.emoji}</Text>
+              <View style={styles.actionAccent} />
               <Text style={styles.actionLabel}>{action.label}</Text>
             </TouchableOpacity>
           ))}
@@ -302,24 +289,9 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#e2e8f0'
   },
-  routeLabel: { fontSize: 13, color: '#718096', marginBottom: 12 },
-  routeOptions: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
-  routeOption: {
-    borderWidth: 1,
-    borderColor: '#cbd5e0',
-    borderRadius: 999,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    backgroundColor: '#fff'
-  },
-  routeOptionSelected: {
-    backgroundColor: '#2d6a4f',
-    borderColor: '#2d6a4f'
-  },
-  routeOptionText: { fontSize: 13, color: '#2d3748', fontWeight: '600' },
-  routeOptionTextSelected: { color: '#fff' },
+  routeTitle: { fontSize: 15, fontWeight: '700', color: '#2d3748', marginBottom: 4 },
+  routeSub: { fontSize: 13, color: '#718096' },
   routeSummary: { marginTop: 14, padding: 12, backgroundColor: '#f7fafc', borderRadius: 12 },
-  routeSummaryTitle: { fontSize: 14, fontWeight: '700', color: '#2d3748', marginBottom: 8 },
   routeStopText: { fontSize: 12, color: '#4a5568', marginBottom: 4 },
   gpsCard: {
     backgroundColor: '#fff', borderRadius: 16,
@@ -333,9 +305,13 @@ const styles = StyleSheet.create({
   actionsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 32 },
   actionCard: {
     width: '23%', backgroundColor: '#fff', borderRadius: 16,
-    padding: 12, alignItems: 'center',
-    shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 8, elevation: 2
+    padding: 12, alignItems: 'center', justifyContent: 'center',
+    shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 8, elevation: 2,
+    flexDirection: 'column', gap: 8,
   },
-  actionEmoji: { fontSize: 24, marginBottom: 4 },
-  actionLabel: { fontSize: 10, fontWeight: '600', color: '#2d3748', textAlign: 'center' },
+  actionAccent: {
+    width: 18, height: 4, borderRadius: 2,
+    backgroundColor: '#2d6a4f',
+  },
+  actionLabel: { fontSize: 10, fontWeight: '700', color: '#2d3748', textAlign: 'center', textTransform: 'uppercase', letterSpacing: 0.3 },
 });

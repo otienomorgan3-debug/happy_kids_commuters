@@ -3,20 +3,17 @@ import { useAuth } from '../context/useAuth';
 
 const links = [
     { to: '/dashboard', label: 'Dashboard' },
-    { to: '/map', label: 'Live Map' },
+    { to: '/schools', label: 'Schools' },
     { to: '/students', label: 'Students' },
     { to: '/parents', label: 'Parents' },
     { to: '/drivers', label: 'Drivers' },
     { to: '/buses', label: 'Buses' },
     { to: '/routes', label: 'Routes' },
-    { to: '/schools', label: 'Schools' },
+    { to: '/map', label: 'Live Map' },
     { to: '/payments', label: 'Payments' },
     { to: '/financial-reports', label: 'Financial Reports' },
     { to: '/incidents', label: 'Incidents' },
     { to: '/analytics', label: 'Analytics' },
-    { to: '/geofences', label: 'Geofencing' },
-    { to: '/driver-behavior', label: 'Driver Behavior' },
-    { to: '/reports', label: 'Reports' },
 ];
 
 export default function Sidebar() {

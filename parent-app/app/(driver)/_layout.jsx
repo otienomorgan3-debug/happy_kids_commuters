@@ -1,7 +1,33 @@
 import { Tabs } from 'expo-router';
-import { Text } from 'react-native';
+import { Text, Platform } from 'react-native';
+
+const TABS = [
+  { name: 'home', title: 'Home' },
+  { name: 'route-guidance', title: 'Route' },
+  { name: 'students', title: 'Students' },
+  { name: 'attendance', title: 'Attendance' },
+  { name: 'sos', title: 'SOS' },
+];
 
 export default function DriverLayout() {
+  if (Platform.OS === 'web') {
+    return (
+      <Tabs
+        screenOptions={{
+          headerShown: false,
+          tabBarPosition: 'top',
+          tabBarActiveTintColor: '#fff',
+          tabBarInactiveTintColor: '#b7e4c7',
+          tabBarStyle: { backgroundColor: '#2d6a4f', height: 0, display: 'none' },
+        }}
+      >
+        {TABS.map(tab => (
+          <Tabs.Screen key={tab.name} name={tab.name} options={{ title: tab.title }} />
+        ))}
+      </Tabs>
+    );
+  }
+
   return (
     <Tabs
       screenOptions={{
@@ -15,14 +41,12 @@ export default function DriverLayout() {
           paddingTop: 4,
           height: 60,
         },
-        tabBarLabelStyle: { fontSize: 11, fontWeight: '600' },
+        tabBarLabelStyle: { fontSize: 12, fontWeight: '600' },
       }}
     >
-      <Tabs.Screen name="home" options={{ title: 'Home', tabBarIcon: () => <Text style={{ fontSize: 20 }}>🏠</Text> }} />
-      <Tabs.Screen name="route-guidance" options={{ title: 'Route', tabBarIcon: () => <Text style={{ fontSize: 20 }}>🗺️</Text> }} />
-      <Tabs.Screen name="students" options={{ title: 'Students', tabBarIcon: () => <Text style={{ fontSize: 20 }}>👦</Text> }} />
-      <Tabs.Screen name="attendance" options={{ title: 'Attendance', tabBarIcon: () => <Text style={{ fontSize: 20 }}>✅</Text> }} />
-      <Tabs.Screen name="sos" options={{ title: 'SOS', tabBarIcon: () => <Text style={{ fontSize: 20 }}>🚨</Text> }} />
+      {TABS.map(tab => (
+        <Tabs.Screen key={tab.name} name={tab.name} options={{ title: tab.title }} />
+      ))}
     </Tabs>
   );
 }

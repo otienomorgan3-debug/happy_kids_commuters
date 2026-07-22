@@ -12,13 +12,10 @@ import Drivers from './pages/Drivers';
 import Buses from './pages/Buses';
 import RoutesPage from './pages/Routes';
 import Schools from './pages/Schools';
-import Reports from './pages/Reports';
 import Payments from './pages/Payments';
 import Analytics from './pages/Analytics';
 import Incidents from './pages/Incidents';
 import FinancialReports from './pages/FinancialReports';
-import Geofences from './pages/Geofences';
-import DriverBehavior from './pages/DriverBehavior';
 
 function ProtectedLayout() {
   const { user, loading } = useAuth();
@@ -37,20 +34,17 @@ function ProtectedLayout() {
       <main className="flex-1 overflow-auto">
         <Routes>
           <Route path="/dashboard" element={<Dashboard />} />
-          <Route path="/map" element={<LiveMap />} />
+          <Route path="/schools" element={<Schools />} />
           <Route path="/students" element={<Students />} />
+          <Route path="/parents" element={<Parents />} />
           <Route path="/drivers" element={<Drivers />} />
           <Route path="/buses" element={<Buses />} />
           <Route path="/routes" element={<RoutesPage />} />
-          <Route path="/schools" element={<Schools />} />
-          <Route path="/reports" element={<Reports />} />
+          <Route path="/map" element={<LiveMap />} />
           <Route path="/payments" element={<Payments />} />
-          <Route path="/parents" element={<Parents />} />
-          <Route path="/analytics" element={<Analytics />} />
-          <Route path="/incidents" element={<Incidents />} />
           <Route path="/financial-reports" element={<FinancialReports />} />
-          <Route path="/geofences" element={<Geofences />} />
-          <Route path="/driver-behavior" element={<DriverBehavior />} />
+          <Route path="/incidents" element={<Incidents />} />
+          <Route path="/analytics" element={<Analytics />} />
           <Route path="*" element={<Navigate to="/dashboard" replace />} />
         </Routes>
       </main>

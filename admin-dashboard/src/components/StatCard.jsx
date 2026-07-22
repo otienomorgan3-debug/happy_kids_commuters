@@ -5,6 +5,7 @@ export default function StatCard({ title, value, icon, color }) {
         yellow: 'bg-yellow-50 border-yellow-200 text-yellow-700',
         red: 'bg-red-50 border-red-200 text-red-700',
         purple: 'bg-purple-50 border-purple-200 text-purple-700',
+        emerald: 'bg-emerald-50 border-emerald-200 text-emerald-700',
     };
 
     return (

@@ -6,34 +6,13 @@ export default function FinancialReports() {
     const [report, setReport] = useState(null);
     const [stats, setStats] = useState(null);
     const [loading, setLoading] = useState(true);
-    const [period, setPeriod] = useState('monthly');
-    const [startDate, setStartDate] = useState('');
-    const [endDate, setEndDate] = useState('');
-
-    const handleApplyFilter = () => {
-        setLoading(true);
-        (async () => {
-            try {
-                const [reportRes, statsRes] = await Promise.all([
-                    getFinancialReport({ period, start_date: startDate || undefined, end_date: endDate || undefined }),
-                    getPaymentStats()
-                ]);
-                setReport(reportRes.data);
-                setStats(statsRes.data);
-            } catch {
-                toast.error('Failed to load financial report');
-            } finally {
-                setLoading(false);
-            }
-        })();
-    };
 
     useEffect(() => {
         let cancelled = false;
         (async () => {
             try {
                 const [reportRes, statsRes] = await Promise.all([
-                    getFinancialReport({ period, start_date: startDate || undefined, end_date: endDate || undefined }),
+                    getFinancialReport(),
                     getPaymentStats()
                 ]);
                 if (!cancelled) {
@@ -47,7 +26,7 @@ export default function FinancialReports() {
             }
         })();
         return () => { cancelled = true; };
-    }, [period, startDate, endDate]);
+    }, []);
 
     if (loading) {
         return <div className="p-8 text-center text-gray-400">Loading financial report...</div>;
@@ -56,48 +35,6 @@ export default function FinancialReports() {
     return (
         <div className="p-8">
             <h1 className="text-3xl font-bold text-gray-900 mb-8">Financial Reports</h1>
-
-            {/* Filters */}
-            <div className="bg-white rounded-lg shadow mb-6 p-4">
-                <div className="flex flex-wrap gap-4 items-end">
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Period</label>
-                        <select
-                            value={period}
-                            onChange={e => setPeriod(e.target.value)}
-                            className="border border-gray-300 rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        >
-                            <option value="weekly">Last 7 Days</option>
-                            <option value="monthly">Last 30 Days</option>
-                            <option value="yearly">Last Year</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Start Date</label>
-                        <input
-                            type="date"
-                            value={startDate}
-                            onChange={e => setStartDate(e.target.value)}
-                            className="border border-gray-300 rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        />
-                    </div>
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">End Date</label>
-                        <input
-                            type="date"
-                            value={endDate}
-                            onChange={e => setEndDate(e.target.value)}
-                            className="border border-gray-300 rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        />
-                    </div>
-                    <button
-                        onClick={handleApplyFilter}
-                        className="bg-blue-600 text-white px-6 py-2 rounded-lg text-sm font-medium hover:bg-blue-700"
-                    >
-                        Apply Filter
-                    </button>
-                </div>
-            </div>
 
             {/* Summary Stats */}
             {stats && (
@@ -131,39 +68,6 @@ export default function FinancialReports() {
                         <p className="text-xs text-gray-400 mt-1">
                             {report?.outstanding?.parents_with_debt || 0} parents with debt
                         </p>
-                    </div>
-                </div>
-            )}
-
-            {/* Daily Breakdown */}
-            {report?.daily_breakdown && report.daily_breakdown.length > 0 && (
-                <div className="bg-white rounded-xl border border-gray-200 p-6 mb-8">
-                    <h2 className="text-lg font-semibold text-gray-800 mb-4">Daily Revenue Breakdown</h2>
-                    <div className="overflow-x-auto">
-                        <table className="min-w-full divide-y divide-gray-200">
-                            <thead className="bg-gray-50">
-                                <tr>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
-                                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Paid Amount</th>
-                                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Pending Amount</th>
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y divide-gray-200">
-                                {report.daily_breakdown.map((day, i) => (
-                                    <tr key={i} className="hover:bg-gray-50">
-                                        <td className="px-6 py-4 text-sm text-gray-900">
-                                            {new Date(day.date + 'T00:00:00').toLocaleDateString('en', { weekday: 'short', month: 'short', day: 'numeric' })}
-                                        </td>
-                                        <td className="px-6 py-4 text-sm text-right font-medium text-green-600">
-                                            KES {Number(day.paid_amount).toFixed(2)}
-                                        </td>
-                                        <td className="px-6 py-4 text-sm text-right font-medium text-yellow-600">
-                                            KES {Number(day.pending_amount).toFixed(2)}
-                                        </td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
                     </div>
                 </div>
             )}

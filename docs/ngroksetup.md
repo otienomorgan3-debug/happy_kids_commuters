@@ -1,11 +1,11 @@
 # Ngrok Setup Guide for HKCS
 
-Ngrok exposes your local backend to the internet, allowing external services (like M-Pesa) to send callbacks to your local development environment.
+Ngrok exposes the local backend to the internet, allowing external services like M-Pesa to send callbacks to your local development environment.
 
 ## Prerequisites
 
 1. **Backend running locally** on port 5000
-2. **Ngrok account** (free tier works): https://ngrok.com/
+2. **Ngrok account** (free tier): https://ngrok.com/
 3. **Ngrok installed** on your machine
 
 ## Installation
