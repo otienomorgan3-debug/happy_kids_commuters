@@ -413,17 +413,26 @@ const getSchedulePreview = async (req, res) => {
       `WITH parent_students AS (
          SELECT s.id as student_id, s.name as student_name, s.pickup_location
          FROM students s JOIN parents p ON s.parent_id = p.id WHERE p.user_id = $1
+       ),
+       student_routes AS (
+         SELECT DISTINCT ps.student_id, ps.student_name, ps.pickup_location, rs.route_id
+         FROM parent_students ps
+         JOIN route_stops rs ON (
+           LOWER(ps.pickup_location) LIKE '%' || LOWER(rs.location) || '%'
+           OR LOWER(ps.pickup_location) LIKE '%' || LOWER(rs.stop_name) || '%'
+           OR LOWER(rs.location) LIKE '%' || LOWER(ps.pickup_location) || '%'
+           OR LOWER(rs.stop_name) LIKE '%' || LOWER(ps.pickup_location) || '%'
+         )
        )
        SELECT t.id, t.start_time, t.end_time, t.status,
               r.route_name, r.estimated_time,
               b.plate_number, u.name as driver_name,
-              ps.student_name, ps.pickup_location
+              sr.student_name, sr.pickup_location
        FROM trips t
        JOIN routes r ON t.route_id = r.id
        JOIN buses b ON t.bus_id = b.id
        JOIN users u ON u.id = (SELECT user_id FROM drivers WHERE id = t.driver_id)
-       JOIN route_stops rs ON rs.route_id = r.id
-       JOIN parent_students ps ON 1=1
+       JOIN student_routes sr ON sr.route_id = t.route_id
        WHERE t.status IN ('active', 'pending')
        ORDER BY t.start_time ASC
        LIMIT 20`,

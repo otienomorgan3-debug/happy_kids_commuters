@@ -23,6 +23,12 @@ export default function MapWeb({ buses, routesById }) {
     var busIcon = L.divIcon({ html: '🚌', className: '', iconSize: [30, 30], iconAnchor: [15, 15] });
     var stopIcon = L.divIcon({ html: '🏫', className: '', iconSize: [24, 24], iconAnchor: [12, 12] });
     ${buses.map(bus => `L.marker([${bus.latitude}, ${bus.longitude}], { icon: busIcon }).addTo(map).bindPopup('<b>Bus ${bus.bus_id}</b><br/>Updated: ${new Date(bus.timestamp).toLocaleTimeString()}');`).join('')}
+    ${Object.values(routesById).flatMap((route, idx) => {
+      const coords = (route.stops || []).filter(stop => stop.latitude != null && stop.longitude != null).map(stop => `[${stop.latitude}, ${stop.longitude}]`).join(',');
+      return coords ? `
+        var routeLine${idx} = L.polyline([${coords}], { color: '#2d6a4f', weight: 5, opacity: 0.7 }).addTo(map);
+      ` : '';
+    }).join('')}
     ${Object.values(routesById).flatMap(route => (route.stops || []).map(stop => `L.marker([${stop.latitude}, ${stop.longitude}], { icon: stopIcon }).addTo(map).bindPopup('<b>${stop.stop_name}</b><br/>${stop.location || ''}');`)).join('')}
     var group = new L.featureGroup([${buses.map(b => `L.marker([${b.latitude}, ${b.longitude}])`).join(',')}${Object.values(routesById).flatMap(route => (route.stops || []).map(s => `,L.marker([${s.latitude}, ${s.longitude}])`)).join('')}]);
     map.fitBounds(group.getBounds().pad(0.2));

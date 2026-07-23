@@ -107,13 +107,15 @@ async function main() {
     console.log('✓ Connected to backend Socket.IO server');
     console.log('');
 
-    // Get active bus/route assignments from database
+    // Get bus-route assignments from database by joining through active trips
     pool.query(`
       SELECT b.id as bus_id, b.plate_number, d.id as driver_id, 
              d.user_id as driver_user_id, r.id as route_id, r.route_name
-      FROM buses b
+      FROM trips t
+      JOIN buses b ON t.bus_id = b.id
       JOIN drivers d ON d.bus_id = b.id
-      CROSS JOIN routes r
+      JOIN routes r ON r.id = t.route_id
+      WHERE t.status = 'active'
       ORDER BY b.id, r.id
     `).then(async (result) => {
       const assignments = result.rows;

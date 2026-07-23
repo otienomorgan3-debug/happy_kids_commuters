@@ -15,6 +15,7 @@ export default function RouteGuidance() {
   const [tripId, setTripId] = useState(null);
   const [route, setRoute] = useState(null);
   const [etaData, setEtaData] = useState({});
+  const [currentLocation, setCurrentLocation] = useState(null);
   const router = useRouter();
 
   const loadData = useCallback(async () => {
@@ -31,23 +32,6 @@ export default function RouteGuidance() {
         const routeRes = await getRouteById(studentsRes.data.route_id);
         if (routeRes.data.route) {
           setRoute(routeRes.data.route);
-          const stops = routeRes.data.route.stops || [];
-          if (stops.length > 0) {
-            const etaPromises = stops.map(stop =>
-              getRouteEta(routeRes.data.route.id, {
-                latitude: stop.latitude,
-                longitude: stop.longitude,
-              }).catch(() => null)
-            );
-            const etaResults = await Promise.all(etaPromises);
-            const etaMap = {};
-            stops.forEach((stop, i) => {
-              if (etaResults[i]?.data?.eta_minutes) {
-                etaMap[stop.id] = etaResults[i].data.eta_minutes;
-              }
-            });
-            setEtaData(etaMap);
-          }
         }
       }
     } catch (error) {
@@ -60,6 +44,25 @@ export default function RouteGuidance() {
   useEffect(() => {
     loadData();
   }, [loadData]);
+
+  useEffect(() => {
+    const loadLocationAndEta = async () => {
+      if (!route || !tripId) return;
+      try {
+        const location = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.High });
+        setCurrentLocation(location.coords);
+        const etaRes = await getRouteEta(route.id, {
+          bus_lat: location.coords.latitude,
+          bus_lng: location.coords.longitude,
+        });
+        setEtaData(etaRes.data.stops_with_eta || []);
+      } catch (error) {
+        console.error('Failed to load ETA:', error.message);
+      }
+    };
+
+    loadLocationAndEta();
+  }, [route, tripId]);
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);

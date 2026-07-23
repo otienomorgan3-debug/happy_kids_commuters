@@ -33,51 +33,18 @@ function WebHeader() {
 }
 
 export default function ParentLayout() {
-  if (Platform.OS === 'web') {
-    return (
-      <Tabs
-        screenOptions={{
-          headerShown: false,
-          tabBarPosition: 'top',
-          tabBarActiveTintColor: '#fff',
-          tabBarInactiveTintColor: '#bee3f8',
-          tabBarStyle: { backgroundColor: '#4a6fa5', height: 0, display: 'none' },
-        }}
-      >
-        {TABS.map(tab => (
-          <Tabs.Screen key={tab.name} name={tab.name} options={{ title: tab.title }} />
-        ))}
-        <Tabs.Screen name="profile" options={{ href: null }} />
-        <Tabs.Screen name="transport-history" options={{ href: null }} />
-        <Tabs.Screen name="mark-absent" options={{ href: null }} />
-        <Tabs.Screen name="change-pickup" options={{ href: null }} />
-        <Tabs.Screen name="schedule-preview" options={{ href: null }} />
-      </Tabs>
-    );
-  }
-
   return (
     <Tabs
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: '#4a6fa5',
-        tabBarInactiveTintColor: '#a0aec0',
-        tabBarStyle: {
-          backgroundColor: '#fff',
-          borderTopColor: '#e2e8f0',
-          paddingBottom: 8,
-          paddingTop: 4,
-          height: 60,
-        },
-        tabBarLabelStyle: { fontSize: 11, fontWeight: '600' },
+        tabBarPosition: 'top',
+        tabBarActiveTintColor: '#fff',
+        tabBarInactiveTintColor: '#bee3f8',
+        tabBarStyle: { backgroundColor: '#4a6fa5', height: 0, display: 'none' },
       }}
     >
       {TABS.map(tab => (
-        <Tabs.Screen
-          key={tab.name}
-          name={tab.name}
-          options={{ title: tab.title, tabBarIcon: () => <Text style={{ fontSize: 20 }}>{tab.icon}</Text> }}
-        />
+        <Tabs.Screen key={tab.name} name={tab.name} options={{ title: tab.title }} />
       ))}
       <Tabs.Screen name="profile" options={{ href: null }} />
       <Tabs.Screen name="transport-history" options={{ href: null }} />

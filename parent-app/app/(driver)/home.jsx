@@ -1,6 +1,6 @@
 import {
   View, Text, StyleSheet, TouchableOpacity,
-  Alert, ScrollView, RefreshControl
+  Alert, ScrollView, RefreshControl, ActivityIndicator
 } from 'react-native';
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter } from 'expo-router';
@@ -8,7 +8,7 @@ import * as Location from 'expo-location';
 import { io } from 'socket.io-client';
 import {
   getMe, startTrip, endTrip, removeToken, SOCKET_URL,
-  getRouteById, getMyAssignment
+  getRouteById, getMyAssignment, getRoutes
 } from '../../constants/api';
 
 export default function DriverHome() {
@@ -19,7 +19,12 @@ export default function DriverHome() {
   const [refreshing, setRefreshing] = useState(false);
   const [assignment, setAssignment] = useState(null);
   const [activeRoute, setActiveRoute] = useState(null);
+  const [routes, setRoutes] = useState([]);
+  const [selectedRouteId, setSelectedRouteId] = useState(null);
+  const [routeLoading, setRouteLoading] = useState(false);
+  const [socketConnected, setSocketConnected] = useState(false);
   const socketRef = useRef(null);
+  const pendingJoinBusIdRef = useRef(null);
   const locationRef = useRef(null);
   const router = useRouter();
 
@@ -33,25 +38,74 @@ export default function DriverHome() {
     }
   }, [router]);
 
+  const loadAvailableRoutes = useCallback(async () => {
+    try {
+      setRouteLoading(true);
+      const res = await getRoutes();
+      const allRoutes = res.data.routes || [];
+      setRoutes(allRoutes);
+      if (!selectedRouteId && allRoutes.length > 0) {
+        setSelectedRouteId(allRoutes[0].id);
+      }
+    } catch (err) {
+      console.error('Failed to load routes', err.message);
+    } finally {
+      setRouteLoading(false);
+    }
+  }, [selectedRouteId]);
+
   const fetchAssignment = useCallback(async () => {
     try {
       const assignmentRes = await getMyAssignment();
-      setAssignment(assignmentRes.data?.assignment || null);
-      const routeId = assignmentRes.data?.assignment?.route_id;
+      const assignmentData = assignmentRes.data?.assignment || null;
+      setAssignment(assignmentData);
+      if (assignmentData?.trip_id) {
+        setTrip({ id: assignmentData.trip_id, bus_id: assignmentData.bus_id, route_id: assignmentData.route_id });
+      } else {
+        setTrip(null);
+      }
+      const routeId = assignmentData?.route_id;
       if (routeId) {
         const routeRes = await getRouteById(routeId).catch(() => ({ data: {} }));
         setActiveRoute(routeRes.data?.route || null);
+      } else {
+        setActiveRoute(null);
+        await loadAvailableRoutes();
       }
-    } catch {
-      console.log('Failed to load assignment');
+    } catch (err) {
+      console.log('Failed to load assignment', err.message);
+      await loadAvailableRoutes();
     }
-  }, []);
+  }, [loadAvailableRoutes]);
+
+  useEffect(() => {
+    if (!assignment?.route_id && !trip && routes.length > 0 && selectedRouteId) {
+      const selected = routes.find(route => route.id === selectedRouteId);
+      if (selected) {
+        setActiveRoute(selected);
+      }
+    }
+  }, [assignment?.route_id, routes, selectedRouteId, trip]);
 
   useEffect(() => {
     fetchUser();
     fetchAssignment();
     socketRef.current = io(SOCKET_URL);
-    socketRef.current.on('connect', () => console.log('Socket connected'));
+    socketRef.current.on('connect', () => {
+      console.log('Socket connected');
+      setSocketConnected(true);
+      if (pendingJoinBusIdRef.current) {
+        socketRef.current.emit('driver:join', { bus_id: pendingJoinBusIdRef.current });
+        pendingJoinBusIdRef.current = null;
+      }
+    });
+    socketRef.current.on('disconnect', () => {
+      setSocketConnected(false);
+      console.log('Socket disconnected');
+    });
+    socketRef.current.on('connect_error', (err) => {
+      console.log('Socket connect error', err.message);
+    });
     requestLocationPermission();
     return () => {
       socketRef.current?.disconnect();
@@ -67,17 +121,28 @@ export default function DriverHome() {
   };
 
   const handleStartTrip = async () => {
-    if (!assignment?.route_id) {
-      Alert.alert('No route assigned', 'You do not have an assigned route yet.');
+    const routeIdToStart = assignment?.route_id || selectedRouteId;
+
+    if (!assignment?.bus_id) {
+      Alert.alert('No bus assigned', 'Your driver profile does not have a bus assigned. Contact admin.');
+      return;
+    }
+
+    if (!routeIdToStart) {
+      Alert.alert('No route selected', 'Choose a route before starting the trip.');
       return;
     }
 
     try {
-      const res = await startTrip({ route_id: assignment.route_id });
+      const res = await startTrip({ route_id: routeIdToStart });
       const newTrip = res.data.trip;
       setTrip(newTrip);
-      socketRef.current?.emit('driver:join', { bus_id: newTrip.bus_id });
-      startGPSBroadcast(newTrip);
+      if (socketRef.current?.connected) {
+        socketRef.current.emit('driver:join', { bus_id: newTrip.bus_id });
+      } else {
+        pendingJoinBusIdRef.current = newTrip.bus_id;
+      }
+      await startGPSBroadcast(newTrip);
 
       if (newTrip.route_id) {
         const routeRes = await getRouteById(newTrip.route_id);
@@ -91,17 +156,30 @@ export default function DriverHome() {
   };
 
   const startGPSBroadcast = async (activeTrip) => {
-    setBroadcasting(true);
-    locationRef.current = await Location.watchPositionAsync(
-      { accuracy: Location.Accuracy.High, timeInterval: 5000, distanceInterval: 10 },
-      (loc) => {
-        const { latitude, longitude } = loc.coords;
-        setLocation({ latitude, longitude });
-        socketRef.current?.emit('driver:location', {
-          bus_id: activeTrip.bus_id, latitude, longitude
-        });
+    try {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Permission Required', 'Location access is needed to broadcast GPS.');
+        setBroadcasting(false);
+        return;
       }
-    );
+
+      setBroadcasting(true);
+      locationRef.current = await Location.watchPositionAsync(
+        { accuracy: Location.Accuracy.High, timeInterval: 5000, distanceInterval: 10 },
+        (loc) => {
+          const { latitude, longitude } = loc.coords;
+          setLocation({ latitude, longitude });
+          socketRef.current?.emit('driver:location', {
+            bus_id: activeTrip.bus_id, latitude, longitude
+          });
+        }
+      );
+    } catch (error) {
+      console.error('GPS broadcast failed:', error.message);
+      setBroadcasting(false);
+      Alert.alert('GPS Error', 'Unable to start location broadcast. Please try again.');
+    }
   };
 
   const handleEndTrip = () => {
@@ -193,8 +271,27 @@ export default function DriverHome() {
                 {assignment.plate_number} • Est. {assignment.estimated_time || '—'} min
               </Text>
             </>
+          ) : routeLoading ? (
+            <ActivityIndicator size="small" color="#4a6fa5" />
+          ) : routes.length > 0 ? (
+            <>
+              <Text style={styles.routeSub}>Select a route before starting the trip:</Text>
+              {routes.map(route => (
+                <TouchableOpacity
+                  key={route.id}
+                  style={[
+                    styles.routeOption,
+                    selectedRouteId === route.id && styles.routeOptionSelected
+                  ]}
+                  onPress={() => setSelectedRouteId(route.id)}
+                >
+                  <Text style={styles.routeOptionTitle}>{route.route_name}</Text>
+                  <Text style={styles.routeOptionMeta}>Est. {route.estimated_time || '—'} min</Text>
+                </TouchableOpacity>
+              ))}
+            </>
           ) : (
-            <Text style={styles.routeSub}>No route assigned yet</Text>
+            <Text style={styles.routeSub}>No routes available yet.</Text>
           )}
           {activeRoute && (
             <View style={styles.routeSummary}>
@@ -293,6 +390,15 @@ const styles = StyleSheet.create({
   routeSub: { fontSize: 13, color: '#718096' },
   routeSummary: { marginTop: 14, padding: 12, backgroundColor: '#f7fafc', borderRadius: 12 },
   routeStopText: { fontSize: 12, color: '#4a5568', marginBottom: 4 },
+  routeOption: {
+    backgroundColor: '#f8fafc', borderWidth: 1, borderColor: '#e2e8f0', borderRadius: 14,
+    padding: 12, marginTop: 10,
+  },
+  routeOptionSelected: {
+    borderColor: '#2d6a4f', backgroundColor: '#e6fffa'
+  },
+  routeOptionTitle: { fontSize: 14, fontWeight: '700', color: '#1f2937' },
+  routeOptionMeta: { fontSize: 12, color: '#718096', marginTop: 4 },
   gpsCard: {
     backgroundColor: '#fff', borderRadius: 16,
     padding: 16, borderWidth: 1, borderColor: '#e2e8f0'

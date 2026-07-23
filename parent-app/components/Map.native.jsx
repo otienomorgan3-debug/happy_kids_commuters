@@ -1,5 +1,5 @@
 import { View, Text, StyleSheet } from 'react-native';
-import MapView, { Marker } from 'react-native-maps';
+import MapView, { Marker, Polyline } from 'react-native-maps';
 
 const NAIROBI = {
   latitude: -1.2921,
@@ -12,6 +12,21 @@ export default function MapNative({ buses, routesById }) {
   return (
     <View style={styles.wrapper}>
       <MapView style={styles.map} initialRegion={NAIROBI}>
+        {Object.values(routesById).map(route => {
+          const coordinates = (route.stops || []).
+            filter(stop => typeof stop.latitude === 'number' && typeof stop.longitude === 'number').
+            map(stop => ({ latitude: stop.latitude, longitude: stop.longitude }));
+          return coordinates.length > 1 ? (
+            <Polyline
+              key={`route-line-${route.id}`}
+              coordinates={coordinates}
+              strokeColor="#2d6a4f"
+              strokeWidth={4}
+              lineCap="round"
+              lineJoin="round"
+            />
+          ) : null;
+        })}
         {buses.map(bus => (
           <Marker
             key={bus.bus_id}

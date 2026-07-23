@@ -52,6 +52,7 @@ export const loginUser = (data) => API.post('/auth/login', data);
 export const registerUser = (data) => API.post('/auth/register', data);
 export const getMe = () => API.get('/auth/me');
 export const getMyStudents = () => API.get('/students/my');
+export const getAssignedStudents = () => API.get('/students/assigned');
 
 // Attendance / driver
 export const startTrip = (data) => API.post('/attendance/trip/start', data);

@@ -238,7 +238,7 @@ const getMyAssignment = async (req, res) => {
   try {
     const result = await pool.query(
       `SELECT d.id as driver_id, d.license_number, b.id as bus_id, b.plate_number, b.capacity,
-              r.id as route_id, r.route_name, r.estimated_time
+              t.id as trip_id, r.id as route_id, r.route_name, r.estimated_time
        FROM drivers d
        JOIN buses b ON d.bus_id = b.id
        LEFT JOIN trips t ON t.bus_id = b.id AND t.status = 'active'

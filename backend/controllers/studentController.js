@@ -56,34 +56,48 @@ const getMyStudents = async (req, res) => {
 
   try {
     const result = await pool.query(
-      `WITH current_trip AS (
-         SELECT id, bus_id, route_id
-         FROM trips
-         WHERE status = 'active'
-         ORDER BY start_time DESC
-         LIMIT 1
+      `WITH parent_students AS (
+         SELECT s.id, s.name, s.pickup_location, s.dropoff_location,
+                s.school_id,
+                COALESCE(s.transport_fee, 0) as transport_fee,
+                COALESCE(s.outstanding_balance, 0) as outstanding_balance
+         FROM students s
+         JOIN parents p ON s.parent_id = p.id
+         WHERE p.user_id = $1
+       ),
+       student_routes AS (
+         SELECT ps.*,
+                rs.route_id,
+                r.route_name
+         FROM parent_students ps
+         JOIN route_stops rs ON rs.location ILIKE '%' || ps.pickup_location || '%'
+                            OR rs.stop_name ILIKE '%' || ps.pickup_location || '%'
+         JOIN routes r ON r.id = rs.route_id
+       ),
+       active_trips AS (
+         SELECT DISTINCT ON (t.route_id) t.id as trip_id, t.route_id, t.bus_id
+         FROM trips t
+         WHERE t.status = 'active'
+         ORDER BY t.route_id, t.start_time DESC
        )
-       SELECT s.id, s.name, s.pickup_location, s.dropoff_location,
+       SELECT sr.id, sr.name, sr.pickup_location, sr.dropoff_location,
               sc.school_name,
-              COALESCE(s.transport_fee, 0) as transport_fee,
-              COALESCE(s.outstanding_balance, 0) as outstanding_balance,
+              sr.transport_fee, sr.outstanding_balance,
               a.boarded_at, a.dropped_at,
-              ct.id as trip_id, ct.bus_id, ct.route_id,
+              at.trip_id, at.bus_id, at.route_id, sr.route_name,
               CASE 
                 WHEN a.dropped_at IS NOT NULL THEN 'dropped'
                 WHEN a.boarded_at IS NOT NULL THEN 'boarded'
                 ELSE 'waiting'
               END as status,
               CASE
-                WHEN COALESCE(s.outstanding_balance, 0) > 0 THEN 'payment_due'
+                WHEN COALESCE(sr.outstanding_balance, 0) > 0 THEN 'payment_due'
                 ELSE 'cleared'
               END as payment_status
-       FROM students s
-       JOIN parents p ON s.parent_id = p.id
-       LEFT JOIN schools sc ON s.school_id = sc.id
-       LEFT JOIN current_trip ct ON TRUE
-       LEFT JOIN attendance a ON a.student_id = s.id AND a.trip_id = ct.id
-       WHERE p.user_id = $1`,
+       FROM student_routes sr
+       LEFT JOIN schools sc ON sc.id = sr.school_id
+       LEFT JOIN active_trips at ON at.route_id = sr.route_id
+       LEFT JOIN attendance a ON a.student_id = sr.id AND a.trip_id = at.trip_id`,
       [user_id]
     );
 
@@ -125,10 +139,15 @@ const getStudentsForDriver = async (req, res) => {
     }
 
     const trip_id = tripResult.rows[0].id;
+    const route_id = tripResult.rows[0].route_id;
 
-    // Get all students with their attendance status for this trip
+    if (!route_id) {
+      return res.status(200).json({ trip_id, bus_id, route_id: null, students: [] });
+    }
+
+    // Get all students assigned to this active trip route
     const result = await pool.query(
-      `SELECT s.id, s.name, s.pickup_location, s.dropoff_location,
+      `SELECT DISTINCT s.id, s.name, s.pickup_location, s.dropoff_location,
               u.phone as parent_phone,
               a.boarded_at, a.dropped_at,
               CASE 
@@ -139,12 +158,16 @@ const getStudentsForDriver = async (req, res) => {
        FROM students s
        JOIN parents p ON s.parent_id = p.id
        JOIN users u ON p.user_id = u.id
+       JOIN route_stops rs ON rs.route_id = $2
+         AND (
+           LOWER(s.pickup_location) LIKE '%' || LOWER(rs.location) || '%'
+           OR LOWER(s.pickup_location) LIKE '%' || LOWER(rs.stop_name) || '%'
+           OR LOWER(rs.location) LIKE '%' || LOWER(s.pickup_location) || '%'
+           OR LOWER(rs.stop_name) LIKE '%' || LOWER(s.pickup_location) || '%'
+         )
        LEFT JOIN attendance a ON a.student_id = s.id AND a.trip_id = $1
-       WHERE s.school_id IN (
-         SELECT DISTINCT school_id FROM students
-       )
        ORDER BY s.name`,
-      [trip_id]
+      [trip_id, route_id]
     );
 
     res.status(200).json({
