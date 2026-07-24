@@ -2,6 +2,7 @@ import {
   View, Text, StyleSheet, ScrollView,
   TouchableOpacity, RefreshControl, ActivityIndicator
 } from 'react-native';
+import { moderateScale, scale, verticalScale, SCREEN_WIDTH, dynamicFontSize } from '../../utils/responsive';
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'expo-router';
 import { getEmergencyAlerts } from '../../constants/api';
@@ -99,34 +100,34 @@ export default function EmergencyAlerts() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#f8f9fa' },
   header: {
-    flexDirection: 'row', alignItems: 'center', gap: 12,
-    padding: 24, paddingTop: 56, backgroundColor: '#ef4444'
+    flexDirection: 'row', alignItems: 'center', gap: verticalScale(12),
+    padding: scale(24), paddingTop: verticalScale(56), backgroundColor: '#ef4444'
   },
-  backButton: { color: '#fff', fontSize: 16, fontWeight: '600' },
-  title: { color: '#fff', fontSize: 22, fontWeight: 'bold' },
-  center: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 32 },
+  backButton: { color: '#fff', fontSize: moderateScale(16), fontWeight: '600' },
+  title: { color: '#fff', fontSize: moderateScale(22), fontWeight: 'bold' },
+  center: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: scale(32) },
   emptyCard: {
-    backgroundColor: '#fff', borderRadius: 16, padding: 32,
-    marginHorizontal: 16, alignItems: 'center', marginTop: 32,
+    backgroundColor: '#fff', borderRadius: moderateScale(16), padding: scale(32),
+    marginHorizontal: scale(16), alignItems: 'center', marginTop: verticalScale(32),
     shadowColor: '#000', shadowOpacity: 0.04, shadowRadius: 8, elevation: 1
   },
-  emptyEmoji: { fontSize: 48, marginBottom: 12 },
-  emptyTitle: { fontSize: 16, fontWeight: 'bold', color: '#2d3748' },
-  emptySub: { fontSize: 13, color: '#718096', marginTop: 4, textAlign: 'center' },
-  list: { padding: 16, gap: 12 },
+  emptyEmoji: { fontSize: moderateScale(48), marginBottom: verticalScale(12) },
+  emptyTitle: { fontSize: moderateScale(16), fontWeight: 'bold', color: '#2d3748' },
+  emptySub: { fontSize: moderateScale(13), color: '#718096', marginTop: verticalScale(4), textAlign: 'center' },
+  list: { padding: scale(16), gap: verticalScale(12) },
   alertCard: {
-    borderRadius: 16, padding: 16,
+    borderRadius: moderateScale(16), padding: scale(16),
     shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 8, elevation: 2
   },
   alertHeader: {
-    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8
+    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: verticalScale(8)
   },
-  alertTitle: { fontSize: 16, fontWeight: 'bold', color: '#2d3748', flex: 1 },
-  statusBadge: { fontSize: 12, fontWeight: '700' },
-  alertDetail: { fontSize: 13, color: '#4a5568', marginBottom: 4 },
+  alertTitle: { fontSize: dynamicFontSize(14, 15, 16), fontWeight: 'bold', color: '#2d3748', flex: 1 },
+  statusBadge: { fontSize: dynamicFontSize(11, 12, 13), fontWeight: '700' },
+  alertDetail: { fontSize: dynamicFontSize(12, 13, 14), color: '#4a5568', marginBottom: verticalScale(4) },
   callAction: {
-    marginTop: 12, backgroundColor: '#ef4444', borderRadius: 10,
-    paddingVertical: 10, alignItems: 'center'
+    marginTop: verticalScale(12), backgroundColor: '#ef4444', borderRadius: moderateScale(10),
+    paddingVertical: verticalScale(10), alignItems: 'center'
   },
-  callActionText: { color: '#fff', fontWeight: '600', fontSize: 14 },
+  callActionText: { color: '#fff', fontWeight: '600', fontSize: dynamicFontSize(13, 14, 15) },
 });

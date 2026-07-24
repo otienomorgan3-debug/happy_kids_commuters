@@ -2,6 +2,7 @@ import {
   View, Text, StyleSheet, TouchableOpacity,
   Alert, Vibration, ScrollView, ActivityIndicator
 } from 'react-native';
+import { moderateScale, scale, verticalScale, SCREEN_WIDTH } from '../../utils/responsive';
 import { useState, useEffect, useRef } from 'react';
 import * as Location from 'expo-location';
 import { io } from 'socket.io-client';
@@ -226,67 +227,67 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#f8f9fa' },
   centered: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   header: {
-    backgroundColor: '#2d6a4f', paddingTop: 56,
-    paddingBottom: 16, paddingHorizontal: 20,
+    backgroundColor: '#2d6a4f', paddingTop: verticalScale(56),
+    paddingBottom: verticalScale(16), paddingHorizontal: scale(20),
   },
-  title: { color: '#fff', fontSize: 18, fontWeight: 'bold' },
-  subtitle: { color: '#b7e4c7', fontSize: 12, marginTop: 4 },
-  content: { padding: 16 },
+  title: { color: '#fff', fontSize: moderateScale(18), fontWeight: 'bold' },
+  subtitle: { color: '#b7e4c7', fontSize: moderateScale(12), marginTop: verticalScale(4) },
+  content: { padding: scale(16) },
   statusCard: {
-    borderRadius: 16, padding: 24,
-    alignItems: 'center', marginBottom: 16
+    borderRadius: moderateScale(16), padding: scale(24),
+    alignItems: 'center', marginBottom: verticalScale(16)
   },
   safe: { backgroundColor: '#d8f3dc' },
   danger: { backgroundColor: '#ffe3e3' },
-  statusEmoji: { fontSize: 48, marginBottom: 8 },
-  statusTitle: { fontSize: 20, fontWeight: 'bold', color: '#2d3748' },
-  statusSub: { fontSize: 13, color: '#718096', marginTop: 6, textAlign: 'center' },
+  statusEmoji: { fontSize: moderateScale(48), marginBottom: verticalScale(8) },
+  statusTitle: { fontSize: moderateScale(20), fontWeight: 'bold', color: '#2d3748' },
+  statusSub: { fontSize: moderateScale(13), color: '#718096', marginTop: verticalScale(6), textAlign: 'center' },
   locationCard: {
-    backgroundColor: '#fffbeb', borderRadius: 12,
-    padding: 14, marginBottom: 16,
+    backgroundColor: '#fffbeb', borderRadius: moderateScale(12),
+    padding: scale(14), marginBottom: verticalScale(16),
     borderWidth: 1, borderColor: '#fcd34d'
   },
-  locationTitle: { fontSize: 14, fontWeight: 'bold', color: '#92400e', marginBottom: 6 },
-  locationText: { fontSize: 13, color: '#92400e', marginBottom: 2 },
+  locationTitle: { fontSize: moderateScale(14), fontWeight: 'bold', color: '#92400e', marginBottom: verticalScale(6) },
+  locationText: { fontSize: moderateScale(13), color: '#92400e', marginBottom: verticalScale(2) },
   sosButton: {
-    backgroundColor: '#c53030', borderRadius: 20,
-    padding: 28, alignItems: 'center', marginBottom: 16,
+    backgroundColor: '#c53030', borderRadius: moderateScale(20),
+    padding: scale(28), alignItems: 'center', marginBottom: verticalScale(16),
     shadowColor: '#c53030', shadowOpacity: 0.3,
     shadowRadius: 12, elevation: 8
   },
-  sosEmoji: { fontSize: 48, marginBottom: 8 },
-  sosText: { color: '#fff', fontSize: 20, fontWeight: 'bold' },
-  sosSub: { color: '#fed7d7', fontSize: 13, marginTop: 4 },
+  sosEmoji: { fontSize: moderateScale(48), marginBottom: verticalScale(8) },
+  sosText: { color: '#fff', fontSize: moderateScale(20), fontWeight: 'bold' },
+  sosSub: { color: '#fed7d7', fontSize: moderateScale(13), marginTop: verticalScale(4) },
   cancelButton: {
-    backgroundColor: '#2d6a4f', borderRadius: 16,
-    padding: 20, alignItems: 'center', marginBottom: 16,
-    flexDirection: 'row', justifyContent: 'center', gap: 8,
+    backgroundColor: '#2d6a4f', borderRadius: moderateScale(16),
+    padding: scale(20), alignItems: 'center', marginBottom: verticalScale(16),
+    flexDirection: 'row', justifyContent: 'center', gap: verticalScale(8),
   },
-  cancelEmoji: { fontSize: 24 },
-  cancelText: { color: '#fff', fontSize: 15, fontWeight: '600' },
+  cancelEmoji: { fontSize: moderateScale(24) },
+  cancelText: { color: '#fff', fontSize: moderateScale(15), fontWeight: '600' },
   instructions: {
-    backgroundColor: '#fff', borderRadius: 16,
-    padding: 16, marginBottom: 16
+    backgroundColor: '#fff', borderRadius: moderateScale(16),
+    padding: scale(16), marginBottom: verticalScale(16)
   },
-  instructionsTitle: { fontSize: 15, fontWeight: 'bold', color: '#2d3748', marginBottom: 12 },
-  instructionItem: { flexDirection: 'row', marginBottom: 8, alignItems: 'flex-start' },
-  instructionBullet: { fontSize: 14, color: '#718096', marginRight: 8 },
-  instructionText: { fontSize: 14, color: '#4a5568', flex: 1 },
+  instructionsTitle: { fontSize: moderateScale(15), fontWeight: 'bold', color: '#2d3748', marginBottom: verticalScale(12) },
+  instructionItem: { flexDirection: 'row', marginBottom: verticalScale(8), alignItems: 'flex-start' },
+  instructionBullet: { fontSize: moderateScale(14), color: '#718096', marginRight: scale(8) },
+  instructionText: { fontSize: moderateScale(14), color: '#4a5568', flex: 1 },
   instructionNote: {
-    fontSize: 12, color: '#a0aec0', marginTop: 12,
+    fontSize: moderateScale(12), color: '#a0aec0', marginTop: verticalScale(12),
     fontStyle: 'italic',
   },
   historySection: {
-    backgroundColor: '#fff', borderRadius: 16,
-    padding: 16, marginBottom: 32
+    backgroundColor: '#fff', borderRadius: moderateScale(16),
+    padding: scale(16), marginBottom: verticalScale(32)
   },
   historyItem: {
     flexDirection: 'row', alignItems: 'center',
-    padding: 10, backgroundColor: '#fff5f5',
-    borderRadius: 10, marginBottom: 8,
+    padding: scale(10), backgroundColor: '#fff5f5',
+    borderRadius: moderateScale(10), marginBottom: verticalScale(8),
   },
   historyItemResolved: { backgroundColor: '#f0f4f8' },
-  historyIcon: { fontSize: 20, marginRight: 10 },
-  historyStatus: { fontSize: 14, fontWeight: '600', color: '#2d3748' },
-  historyTime: { fontSize: 12, color: '#718096', marginTop: 2 },
+  historyIcon: { fontSize: moderateScale(20), marginRight: scale(10) },
+  historyStatus: { fontSize: moderateScale(14), fontWeight: '600', color: '#2d3748' },
+  historyTime: { fontSize: moderateScale(12), color: '#718096', marginTop: verticalScale(2) },
 });

@@ -6,6 +6,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter } from 'expo-router';
 import * as Location from 'expo-location';
 import { io } from 'socket.io-client';
+import { moderateScale, scale, verticalScale, SCREEN_WIDTH } from '../../utils/responsive';
 import {
   getMe, startTrip, endTrip, removeToken, SOCKET_URL,
   getRouteById, getMyAssignment, getRoutes
@@ -331,6 +332,7 @@ export default function DriverHome() {
             { label: 'Students', route: '/(driver)/students' },
             { label: 'Route Guide', route: '/(driver)/route-guidance' },
             { label: 'Attendance', route: '/(driver)/attendance' },
+            { label: 'Messages', route: '/(driver)/chat' },
             { label: 'SOS', route: '/(driver)/sos' },
           ].map(action => (
             <TouchableOpacity
@@ -353,71 +355,71 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row', justifyContent: 'space-between',
     alignItems: 'center', backgroundColor: '#2d6a4f',
-    padding: 24, paddingTop: 56, paddingBottom: 32,
+    padding: scale(24), paddingTop: verticalScale(56), paddingBottom: verticalScale(32),
   },
-  greeting: { color: '#b7e4c7', fontSize: 14 },
-  name: { color: '#fff', fontSize: 22, fontWeight: 'bold', marginTop: 2 },
-  logoutText: { color: '#b7e4c7', fontSize: 13 },
-  section: { margin: 16, marginBottom: 0 },
-  sectionTitle: { fontSize: 16, fontWeight: 'bold', color: '#2d3748', marginBottom: 10 },
+  greeting: { color: '#b7e4c7', fontSize: moderateScale(14) },
+  name: { color: '#fff', fontSize: moderateScale(22), fontWeight: 'bold', marginTop: verticalScale(2) },
+  logoutText: { color: '#b7e4c7', fontSize: moderateScale(13) },
+  section: { marginHorizontal: scale(16), marginBottom: verticalScale(16) },
+  sectionTitle: { fontSize: moderateScale(16), fontWeight: 'bold', color: '#2d3748', marginBottom: verticalScale(10) },
   statusCard: {
-    borderRadius: 16, padding: 20,
-    alignItems: 'center', marginBottom: 12
+    borderRadius: verticalScale(16), padding: verticalScale(20),
+    alignItems: 'center', marginBottom: verticalScale(12)
   },
   statusActive: { backgroundColor: '#d8f3dc' },
   statusIdle: { backgroundColor: '#f0f4f8' },
-  statusEmoji: { fontSize: 40, marginBottom: 8 },
-  statusTitle: { fontSize: 18, fontWeight: 'bold', color: '#2d3748' },
-  statusSub: { fontSize: 13, color: '#718096', marginTop: 4, textAlign: 'center' },
+  statusEmoji: { fontSize: moderateScale(40), marginBottom: verticalScale(8) },
+  statusTitle: { fontSize: moderateScale(18), fontWeight: 'bold', color: '#2d3748' },
+  statusSub: { fontSize: moderateScale(13), color: '#718096', marginTop: verticalScale(4), textAlign: 'center' },
   startButton: {
-    backgroundColor: '#2d6a4f', borderRadius: 12,
-    paddingVertical: 14, alignItems: 'center'
+    backgroundColor: '#2d6a4f', borderRadius: verticalScale(12),
+    paddingVertical: verticalScale(14), alignItems: 'center'
   },
-  startButtonText: { color: '#fff', fontSize: 16, fontWeight: '600' },
+  startButtonText: { color: '#fff', fontSize: moderateScale(16), fontWeight: '600' },
   endButton: {
-    backgroundColor: '#c53030', borderRadius: 12,
-    paddingVertical: 14, alignItems: 'center'
+    backgroundColor: '#c53030', borderRadius: verticalScale(12),
+    paddingVertical: verticalScale(14), alignItems: 'center'
   },
-  endButtonText: { color: '#fff', fontSize: 16, fontWeight: '600' },
+  endButtonText: { color: '#fff', fontSize: moderateScale(16), fontWeight: '600' },
   routeCard: {
     backgroundColor: '#fff',
-    borderRadius: 16,
-    padding: 16,
+    borderRadius: verticalScale(16),
+    padding: verticalScale(16),
     borderWidth: 1,
     borderColor: '#e2e8f0'
   },
-  routeTitle: { fontSize: 15, fontWeight: '700', color: '#2d3748', marginBottom: 4 },
-  routeSub: { fontSize: 13, color: '#718096' },
-  routeSummary: { marginTop: 14, padding: 12, backgroundColor: '#f7fafc', borderRadius: 12 },
-  routeStopText: { fontSize: 12, color: '#4a5568', marginBottom: 4 },
+  routeTitle: { fontSize: moderateScale(15), fontWeight: '700', color: '#2d3748', marginBottom: verticalScale(4) },
+  routeSub: { fontSize: moderateScale(13), color: '#718096' },
+  routeSummary: { marginTop: verticalScale(14), padding: verticalScale(12), backgroundColor: '#f7fafc', borderRadius: verticalScale(12) },
+  routeStopText: { fontSize: moderateScale(12), color: '#4a5568', marginBottom: verticalScale(4) },
   routeOption: {
-    backgroundColor: '#f8fafc', borderWidth: 1, borderColor: '#e2e8f0', borderRadius: 14,
-    padding: 12, marginTop: 10,
+    backgroundColor: '#f8fafc', borderWidth: 1, borderColor: '#e2e8f0', borderRadius: verticalScale(14),
+    padding: verticalScale(12), marginTop: verticalScale(10),
   },
   routeOptionSelected: {
     borderColor: '#2d6a4f', backgroundColor: '#e6fffa'
   },
-  routeOptionTitle: { fontSize: 14, fontWeight: '700', color: '#1f2937' },
-  routeOptionMeta: { fontSize: 12, color: '#718096', marginTop: 4 },
+  routeOptionTitle: { fontSize: moderateScale(14), fontWeight: '700', color: '#1f2937' },
+  routeOptionMeta: { fontSize: moderateScale(12), color: '#718096', marginTop: verticalScale(4) },
   gpsCard: {
-    backgroundColor: '#fff', borderRadius: 16,
-    padding: 16, borderWidth: 1, borderColor: '#e2e8f0'
+    backgroundColor: '#fff', borderRadius: verticalScale(16),
+    padding: verticalScale(16), borderWidth: 1, borderColor: '#e2e8f0'
   },
-  gpsRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  gpsDot: { width: 12, height: 12, borderRadius: 6 },
-  gpsStatus: { fontSize: 14, color: '#2d3748', fontWeight: '500' },
-  coordsBox: { marginTop: 12, backgroundColor: '#f7fafc', borderRadius: 8, padding: 10 },
-  coordsText: { fontSize: 13, color: '#718096', marginBottom: 4 },
-  actionsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 32 },
+  gpsRow: { flexDirection: 'row', alignItems: 'center', gap: scale(10) },
+  gpsDot: { width: verticalScale(12), height: verticalScale(12), borderRadius: verticalScale(6) },
+  gpsStatus: { fontSize: moderateScale(14), color: '#2d3748', fontWeight: '500' },
+  coordsBox: { marginTop: verticalScale(12), backgroundColor: '#f7fafc', borderRadius: verticalScale(8), padding: verticalScale(10) },
+  coordsText: { fontSize: moderateScale(13), color: '#718096', marginBottom: verticalScale(4) },
+  actionsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: verticalScale(10), marginBottom: verticalScale(32) },
   actionCard: {
-    width: '23%', backgroundColor: '#fff', borderRadius: 16,
-    padding: 12, alignItems: 'center', justifyContent: 'center',
-    shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 8, elevation: 2,
-    flexDirection: 'column', gap: 8,
+    width: SCREEN_WIDTH < 350 ? '47%' : '23%', backgroundColor: '#fff', borderRadius: verticalScale(16),
+    padding: verticalScale(12), alignItems: 'center', justifyContent: 'center',
+    shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: verticalScale(8), elevation: 2,
+    flexDirection: 'column', gap: verticalScale(8),
   },
   actionAccent: {
-    width: 18, height: 4, borderRadius: 2,
+    width: scale(18), height: verticalScale(4), borderRadius: verticalScale(2),
     backgroundColor: '#2d6a4f',
   },
-  actionLabel: { fontSize: 10, fontWeight: '700', color: '#2d3748', textAlign: 'center', textTransform: 'uppercase', letterSpacing: 0.3 },
+  actionLabel: { fontSize: moderateScale(10), fontWeight: '700', color: '#2d3748', textAlign: 'center', textTransform: 'uppercase', letterSpacing: 0.3 },
 });

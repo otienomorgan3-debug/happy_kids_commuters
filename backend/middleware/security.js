@@ -32,7 +32,7 @@ const authLimiter = createRateLimiter(
 // Rate limiter for payment endpoints
 const paymentLimiter = createRateLimiter(
   60 * 1000, // 1 minute
-  3, // 3 requests per minute
+  20, // 20 requests per minute
   'Too many payment requests, please wait before trying again.'
 );
 

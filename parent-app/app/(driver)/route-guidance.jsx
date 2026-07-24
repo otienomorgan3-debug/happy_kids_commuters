@@ -2,6 +2,7 @@ import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
   ActivityIndicator, RefreshControl
 } from 'react-native';
+import { moderateScale, scale, verticalScale, SCREEN_WIDTH } from '../../utils/responsive';
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'expo-router';
 import * as Location from 'expo-location';
@@ -175,7 +176,7 @@ export default function RouteGuidance() {
                           {stop.stop_order}
                         </Text>
                       </View>
-                      <View style={{ flex: 1, marginLeft: 12 }}>
+                      <View style={{ flex: 1, marginLeft: scale(12) }}>
                         <Text style={styles.stopName}>{stop.stop_name}</Text>
                         {stop.location && (
                           <Text style={styles.stopLocation}>{stop.location}</Text>
@@ -235,66 +236,66 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#f8f9fa' },
   centered: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   header: {
-    backgroundColor: '#2d6a4f', paddingTop: 56,
-    paddingBottom: 20, paddingHorizontal: 20,
+    backgroundColor: '#2d6a4f', paddingTop: verticalScale(56),
+    paddingBottom: verticalScale(20), paddingHorizontal: scale(20),
   },
-  title: { color: '#fff', fontSize: 20, fontWeight: 'bold' },
-  subtitle: { color: '#b7e4c7', fontSize: 13, marginTop: 4 },
+  title: { color: '#fff', fontSize: moderateScale(20), fontWeight: 'bold' },
+  subtitle: { color: '#b7e4c7', fontSize: moderateScale(13), marginTop: verticalScale(4) },
   noTripCard: {
-    margin: 20, backgroundColor: '#fff', borderRadius: 16,
-    padding: 32, alignItems: 'center',
+    margin: scale(20), backgroundColor: '#fff', borderRadius: moderateScale(16),
+    padding: scale(32), alignItems: 'center',
     shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 8, elevation: 2,
   },
-  noTripEmoji: { fontSize: 48, marginBottom: 12 },
-  noTripTitle: { fontSize: 18, fontWeight: 'bold', color: '#2d3748' },
-  noTripSub: { fontSize: 13, color: '#718096', marginTop: 6, textAlign: 'center' },
-  goHomeButton: { marginTop: 16, backgroundColor: '#2d6a4f', borderRadius: 12, paddingHorizontal: 24, paddingVertical: 10 },
+  noTripEmoji: { fontSize: moderateScale(48), marginBottom: verticalScale(12) },
+  noTripTitle: { fontSize: moderateScale(18), fontWeight: 'bold', color: '#2d3748' },
+  noTripSub: { fontSize: moderateScale(13), color: '#718096', marginTop: verticalScale(6), textAlign: 'center' },
+  goHomeButton: { marginTop: verticalScale(16), backgroundColor: '#2d6a4f', borderRadius: moderateScale(12), paddingHorizontal: scale(24), paddingVertical: verticalScale(10) },
   goHomeText: { color: '#fff', fontWeight: '600' },
   liveBar: {
     flexDirection: 'row', alignItems: 'center',
-    backgroundColor: '#d8f3dc', padding: 10, marginHorizontal: 16, marginTop: 16,
-    borderRadius: 10,
+    backgroundColor: '#d8f3dc', padding: scale(10), marginHorizontal: scale(16), marginTop: verticalScale(16),
+    borderRadius: moderateScale(10),
   },
-  liveDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: '#2d6a4f', marginRight: 8 },
-  liveText: { fontSize: 13, fontWeight: '600', color: '#22543d' },
-  section: { margin: 16, marginBottom: 0 },
-  sectionTitle: { fontSize: 16, fontWeight: 'bold', color: '#2d3748', marginBottom: 8 },
-  routeMeta: { fontSize: 13, color: '#718096' },
-  summaryRow: { flexDirection: 'row', gap: 10 },
+  liveDot: { width: scale(8), height: verticalScale(8), borderRadius: moderateScale(4), backgroundColor: '#2d6a4f', marginRight: scale(8) },
+  liveText: { fontSize: moderateScale(13), fontWeight: '600', color: '#22543d' },
+  section: { margin: scale(16), marginBottom: verticalScale(0) },
+  sectionTitle: { fontSize: moderateScale(16), fontWeight: 'bold', color: '#2d3748', marginBottom: verticalScale(8) },
+  routeMeta: { fontSize: moderateScale(13), color: '#718096' },
+  summaryRow: { flexDirection: 'row', gap: verticalScale(10) },
   summaryItem: {
-    flex: 1, backgroundColor: '#fff', borderRadius: 12,
-    padding: 14, alignItems: 'center',
+    flex: 1, backgroundColor: '#fff', borderRadius: moderateScale(12),
+    padding: scale(14), alignItems: 'center',
     shadowColor: '#000', shadowOpacity: 0.03, shadowRadius: 4, elevation: 1,
   },
-  summaryNumber: { fontSize: 24, fontWeight: 'bold', color: '#718096' },
-  summaryLabel: { fontSize: 11, color: '#a0aec0', marginTop: 4 },
-  stopCard: { marginBottom: 4 },
+  summaryNumber: { fontSize: moderateScale(24), fontWeight: 'bold', color: '#718096' },
+  summaryLabel: { fontSize: moderateScale(11), color: '#a0aec0', marginTop: verticalScale(4) },
+  stopCard: { marginBottom: verticalScale(4) },
   stopHeader: {
     flexDirection: 'row', alignItems: 'center',
-    backgroundColor: '#fff', borderRadius: 14,
-    padding: 14, shadowColor: '#000', shadowOpacity: 0.03, shadowRadius: 4, elevation: 1,
+    backgroundColor: '#fff', borderRadius: moderateScale(14),
+    padding: scale(14), shadowColor: '#000', shadowOpacity: 0.03, shadowRadius: 4, elevation: 1,
   },
   stopNumber: {
-    width: 32, height: 32, borderRadius: 16,
+    width: scale(32), height: verticalScale(32), borderRadius: moderateScale(16),
     backgroundColor: '#e2e8f0', alignItems: 'center', justifyContent: 'center',
   },
-  stopNumberText: { fontSize: 14, fontWeight: 'bold', color: '#718096' },
-  stopName: { fontSize: 14, fontWeight: '700', color: '#2d3748' },
-  stopLocation: { fontSize: 11, color: '#a0aec0', marginTop: 2 },
-  stopStatus: { borderRadius: 8, paddingHorizontal: 8, paddingVertical: 4, marginLeft: 8 },
-  stopStatusText: { fontSize: 10, fontWeight: '600' },
-  etaRow: { marginLeft: 44, marginTop: 4, marginBottom: 4 },
-  etaText: { fontSize: 12, color: '#2d6a4f', fontWeight: '600' },
+  stopNumberText: { fontSize: moderateScale(14), fontWeight: 'bold', color: '#718096' },
+  stopName: { fontSize: moderateScale(14), fontWeight: '700', color: '#2d3748' },
+  stopLocation: { fontSize: moderateScale(11), color: '#a0aec0', marginTop: verticalScale(2) },
+  stopStatus: { borderRadius: moderateScale(8), paddingHorizontal: scale(8), paddingVertical: verticalScale(4), marginLeft: scale(8) },
+  stopStatusText: { fontSize: moderateScale(10), fontWeight: '600' },
+  etaRow: { marginLeft: scale(44), marginTop: verticalScale(4), marginBottom: verticalScale(4) },
+  etaText: { fontSize: moderateScale(12), color: '#2d6a4f', fontWeight: '600' },
   stopConnector: {
-    width: 2, height: 20, backgroundColor: '#e2e8f0',
-    marginLeft: 15, marginVertical: 2,
+    width: scale(2), height: verticalScale(20), backgroundColor: '#e2e8f0',
+    marginLeft: scale(15), marginVertical: verticalScale(2),
   },
-  actionsRow: { flexDirection: 'row', gap: 10, marginBottom: 32 },
+  actionsRow: { flexDirection: 'row', gap: verticalScale(10), marginBottom: verticalScale(32) },
   actionButton: {
-    flex: 1, backgroundColor: '#fff', borderRadius: 14,
-    padding: 14, alignItems: 'center',
+    flex: 1, backgroundColor: '#fff', borderRadius: moderateScale(14),
+    padding: scale(14), alignItems: 'center',
     shadowColor: '#000', shadowOpacity: 0.04, shadowRadius: 6, elevation: 1,
   },
-  actionEmoji: { fontSize: 24, marginBottom: 6 },
-  actionLabel: { fontSize: 12, fontWeight: '600', color: '#2d3748' },
+  actionEmoji: { fontSize: moderateScale(24), marginBottom: verticalScale(6) },
+  actionLabel: { fontSize: moderateScale(12), fontWeight: '600', color: '#2d3748' },
 });

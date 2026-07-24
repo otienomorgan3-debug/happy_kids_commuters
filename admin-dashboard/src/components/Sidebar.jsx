@@ -11,6 +11,7 @@ const links = [
     { to: '/routes', label: 'Routes' },
     { to: '/map', label: 'Live Map' },
     { to: '/payments', label: 'Payments' },
+    { to: '/messaging', label: 'Messages' },
     { to: '/financial-reports', label: 'Financial Reports' },
     { to: '/incidents', label: 'Incidents' },
     { to: '/analytics', label: 'Analytics' },

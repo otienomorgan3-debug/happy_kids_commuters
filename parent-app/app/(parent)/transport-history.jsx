@@ -7,6 +7,7 @@ import {
   ActivityIndicator,
   RefreshControl,
 } from 'react-native';
+import { moderateScale, scale, verticalScale, SCREEN_WIDTH, dynamicFontSize } from '../../utils/responsive';
 import { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'expo-router';
 import { getTransportHistory } from '../../constants/api';
@@ -74,14 +75,14 @@ export default function TransportHistory() {
           <Text style={styles.backText}>← Back</Text>
         </TouchableOpacity>
         <Text style={styles.title}>Transport History</Text>
-        <View style={{ width: 56 }} />
+        <View style={{ width: SCREEN_WIDTH < 350 ? scale(48) : scale(56) }} />
       </View>
 
       <FlatList
         data={trips}
         keyExtractor={(item) => item.id.toString()}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
-        contentContainerStyle={{ padding: 16, paddingBottom: 40 }}
+        contentContainerStyle={{ padding: scale(16), paddingBottom: verticalScale(40) }}
         ListEmptyComponent={
           <View style={styles.empty}>
             <Text style={styles.emptyEmoji}>🚌</Text>
@@ -162,50 +163,50 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     backgroundColor: '#4a6fa5',
-    paddingTop: 56,
-    paddingHorizontal: 16,
-    paddingBottom: 16,
+    paddingTop: verticalScale(56),
+    paddingHorizontal: scale(16),
+    paddingBottom: verticalScale(16),
   },
-  title: { color: '#fff', fontSize: 18, fontWeight: '800' },
-  backText: { color: '#dceeff', fontSize: 15, fontWeight: '700' },
+  title: { color: '#fff', fontSize: dynamicFontSize(16, 17, 18), fontWeight: '800' },
+  backText: { color: '#dceeff', fontSize: dynamicFontSize(13, 14, 15), fontWeight: '700' },
   card: {
     backgroundColor: '#fff',
-    borderRadius: 18,
-    padding: 16,
-    marginBottom: 12,
+    borderRadius: moderateScale(18),
+    padding: scale(16),
+    marginBottom: verticalScale(12),
     shadowColor: '#000',
     shadowOpacity: 0.05,
     shadowRadius: 8,
     elevation: 2,
   },
   row: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  routeName: { fontSize: 16, fontWeight: '800', color: '#2d3748' },
-  driverName: { fontSize: 13, color: '#718096', marginTop: 4 },
-  divider: { height: 1, backgroundColor: '#e2e8f0', marginVertical: 12 },
-  tripDetails: { gap: 8 },
+  routeName: { fontSize: dynamicFontSize(14, 15, 16), fontWeight: '800', color: '#2d3748' },
+  driverName: { fontSize: dynamicFontSize(11, 12, 13), color: '#718096', marginTop: verticalScale(4) },
+  divider: { height: verticalScale(1), backgroundColor: '#e2e8f0', marginVertical: verticalScale(12) },
+  tripDetails: { gap: verticalScale(8) },
   detailRow: { flexDirection: 'row', justifyContent: 'space-between' },
-  detailLabel: { fontSize: 13, color: '#718096', fontWeight: '600' },
-  detailValue: { fontSize: 13, color: '#2d3748', fontWeight: '600' },
+  detailLabel: { fontSize: dynamicFontSize(11, 12, 13), color: '#718096', fontWeight: '600' },
+  detailValue: { fontSize: dynamicFontSize(11, 12, 13), color: '#2d3748', fontWeight: '600' },
   statusPill: {
-    borderRadius: 999,
-    paddingHorizontal: 10,
-    paddingVertical: 5,
+    borderRadius: moderateScale(999),
+    paddingHorizontal: scale(10),
+    paddingVertical: verticalScale(5),
   },
   statusCompleted: { backgroundColor: '#e6fffa' },
   statusActive: { backgroundColor: '#dbeafe' },
   statusPending: { backgroundColor: '#fff7e6' },
-  statusText: { fontSize: 11, fontWeight: '800', color: '#2d3748', textTransform: 'uppercase' },
-  attendanceTitle: { fontSize: 13, fontWeight: '700', color: '#4a5568', marginBottom: 8 },
+  statusText: { fontSize: dynamicFontSize(10, 11, 12), fontWeight: '800', color: '#2d3748', textTransform: 'uppercase' },
+  attendanceTitle: { fontSize: dynamicFontSize(11, 12, 13), fontWeight: '700', color: '#4a5568', marginBottom: verticalScale(8) },
   attendanceRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: 6,
+    paddingVertical: verticalScale(6),
   },
-  attendanceText: { fontSize: 13, color: '#2d3748' },
-  attendanceTime: { fontSize: 12, color: '#718096' },
-  empty: { alignItems: 'center', paddingTop: 60 },
-  emptyEmoji: { fontSize: 48, marginBottom: 12 },
-  emptyTitle: { fontSize: 16, fontWeight: '800', color: '#2d3748' },
-  emptySub: { fontSize: 13, color: '#718096', marginTop: 6, textAlign: 'center' },
+  attendanceText: { fontSize: dynamicFontSize(11, 12, 13), color: '#2d3748' },
+  attendanceTime: { fontSize: dynamicFontSize(10, 11, 12), color: '#718096' },
+  empty: { alignItems: 'center', paddingTop: verticalScale(60) },
+  emptyEmoji: { fontSize: moderateScale(48), marginBottom: verticalScale(12) },
+  emptyTitle: { fontSize: dynamicFontSize(14, 15, 16), fontWeight: '800', color: '#2d3748' },
+  emptySub: { fontSize: dynamicFontSize(11, 12, 13), color: '#718096', marginTop: verticalScale(6), textAlign: 'center' },
 });

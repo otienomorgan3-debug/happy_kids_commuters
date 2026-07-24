@@ -1,9 +1,19 @@
 import { TextInput, View, Text } from 'react-native';
+import { responsiveFontSize, paddingScale, marginScale, radiusScale } from '../utils/responsive';
 
 export default function Input({ label, value, onChangeText, placeholder, secureTextEntry, keyboardType, multiline, style }) {
   return (
-    <View style={[styles.wrapper, style]}>
-      {label ? <Text style={styles.label}>{label}</Text> : null}
+    <View style={[{ marginBottom: marginScale(12) }, style]}>
+      {label ? (
+        <Text style={{
+          fontSize: responsiveFontSize(13),
+          fontWeight: '600',
+          color: '#4a5568',
+          marginBottom: marginScale(6),
+        }}>
+          {label}
+        </Text>
+      ) : null}
       <TextInput
         value={value}
         onChangeText={onChangeText}
@@ -12,18 +22,17 @@ export default function Input({ label, value, onChangeText, placeholder, secureT
         secureTextEntry={secureTextEntry}
         keyboardType={keyboardType || 'default'}
         multiline={multiline}
-        style={styles.input}
+        style={{
+          borderWidth: 1,
+          borderColor: '#e2e8f0',
+          borderRadius: radiusScale(12),
+          paddingHorizontal: paddingScale(14),
+          paddingVertical: paddingScale(12),
+          fontSize: responsiveFontSize(14),
+          color: '#2d3748',
+          backgroundColor: '#fff'
+        }}
       />
     </View>
   );
 }
-
-const styles = {
-  wrapper: { marginBottom: 12 },
-  label: { fontSize: 13, fontWeight: '600', color: '#4a5568', marginBottom: 6 },
-  input: {
-    borderWidth: 1, borderColor: '#e2e8f0', borderRadius: 12,
-    paddingHorizontal: 14, paddingVertical: 12, fontSize: 14, color: '#2d3748',
-    backgroundColor: '#fff'
-  },
-};

@@ -2,6 +2,7 @@ import {
   View, Text, StyleSheet, FlatList,
   RefreshControl, ActivityIndicator
 } from 'react-native';
+import { moderateScale, scale, verticalScale, SCREEN_WIDTH } from '../../utils/responsive';
 import { useState, useEffect, useCallback } from 'react';
 import { getAssignedStudents } from '../../constants/api';
 
@@ -61,7 +62,7 @@ export default function DriverStudents() {
       <FlatList
         data={students}
         keyExtractor={item => item.id.toString()}
-        contentContainerStyle={{ padding: 16 }}
+        contentContainerStyle={{ padding: scale(16) }}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
         ListEmptyComponent={
           <View style={styles.empty}>
@@ -104,33 +105,33 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#f8f9fa' },
   centered: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   header: {
-    backgroundColor: '#2d6a4f', paddingTop: 56,
-    paddingBottom: 16, paddingHorizontal: 20,
+    backgroundColor: '#2d6a4f', paddingTop: verticalScale(56),
+    paddingBottom: verticalScale(16), paddingHorizontal: scale(20),
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center'
   },
-  title: { color: '#fff', fontSize: 18, fontWeight: 'bold' },
-  count: { color: '#b7e4c7', fontSize: 13 },
+  title: { color: '#fff', fontSize: moderateScale(18), fontWeight: 'bold' },
+  count: { color: '#b7e4c7', fontSize: moderateScale(13) },
   card: {
-    backgroundColor: '#fff', borderRadius: 16, padding: 16,
-    marginBottom: 12, shadowColor: '#000',
+    backgroundColor: '#fff', borderRadius: moderateScale(16), padding: scale(16),
+    marginBottom: verticalScale(12), shadowColor: '#000',
     shadowOpacity: 0.05, shadowRadius: 8, elevation: 2
   },
-  cardHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 10 },
+  cardHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: verticalScale(10) },
   avatar: {
-    width: 44, height: 44, borderRadius: 22,
+    width: scale(44), height: verticalScale(44), borderRadius: moderateScale(22),
     backgroundColor: '#d8f3dc', alignItems: 'center', justifyContent: 'center'
   },
-  avatarText: { fontSize: 18, fontWeight: 'bold', color: '#2d6a4f' },
-  info: { flex: 1, marginLeft: 10 },
-  studentName: { fontSize: 15, fontWeight: 'bold', color: '#2d3748' },
-  phone: { fontSize: 12, color: '#718096', marginTop: 2 },
-  statusBadge: { borderRadius: 8, paddingHorizontal: 8, paddingVertical: 4 },
-  statusText: { fontSize: 11, fontWeight: '600', color: '#2d3748' },
-  locationRow: { flexDirection: 'row', marginTop: 4 },
-  locationLabel: { fontSize: 12, color: '#718096', marginRight: 4, width: 70 },
-  locationValue: { fontSize: 12, color: '#2d3748', flex: 1 },
-  empty: { alignItems: 'center', paddingTop: 60 },
-  emptyEmoji: { fontSize: 48, marginBottom: 12 },
-  emptyTitle: { fontSize: 16, fontWeight: 'bold', color: '#2d3748' },
-  emptySub: { fontSize: 13, color: '#718096', marginTop: 4, textAlign: 'center' },
+  avatarText: { fontSize: moderateScale(18), fontWeight: 'bold', color: '#2d6a4f' },
+  info: { flex: 1, marginLeft: scale(10) },
+  studentName: { fontSize: moderateScale(15), fontWeight: 'bold', color: '#2d3748' },
+  phone: { fontSize: moderateScale(12), color: '#718096', marginTop: verticalScale(2) },
+  statusBadge: { borderRadius: moderateScale(8), paddingHorizontal: scale(8), paddingVertical: verticalScale(4) },
+  statusText: { fontSize: moderateScale(11), fontWeight: '600', color: '#2d3748' },
+  locationRow: { flexDirection: 'row', marginTop: verticalScale(4) },
+  locationLabel: { fontSize: moderateScale(12), color: '#718096', marginRight: scale(4), width: scale(70) },
+  locationValue: { fontSize: moderateScale(12), color: '#2d3748', flex: 1 },
+  empty: { alignItems: 'center', paddingTop: verticalScale(60) },
+  emptyEmoji: { fontSize: moderateScale(48), marginBottom: verticalScale(12) },
+  emptyTitle: { fontSize: moderateScale(16), fontWeight: 'bold', color: '#2d3748' },
+  emptySub: { fontSize: moderateScale(13), color: '#718096', marginTop: verticalScale(4), textAlign: 'center' },
 });

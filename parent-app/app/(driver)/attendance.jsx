@@ -2,6 +2,7 @@ import {
   View, Text, StyleSheet, FlatList,
   TouchableOpacity, Alert, RefreshControl, ActivityIndicator
 } from 'react-native';
+import { moderateScale, scale, verticalScale, SCREEN_WIDTH } from '../../utils/responsive';
 import { useState, useEffect, useCallback } from 'react';
 import { getAssignedStudents, markBoarded, markDropped } from '../../constants/api';
 
@@ -132,7 +133,7 @@ export default function Attendance() {
       <FlatList
         data={students}
         keyExtractor={item => item.id.toString()}
-        contentContainerStyle={{ padding: 16, paddingBottom: 40 }}
+        contentContainerStyle={{ padding: scale(16), paddingBottom: verticalScale(40) }}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
         ListEmptyComponent={
           <View style={styles.empty}>
@@ -220,63 +221,63 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#f8f9fa' },
   centered: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   header: {
-    backgroundColor: '#2d6a4f', paddingTop: 56,
-    paddingBottom: 16, paddingHorizontal: 20,
+    backgroundColor: '#2d6a4f', paddingTop: verticalScale(56),
+    paddingBottom: verticalScale(16), paddingHorizontal: scale(20),
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center'
   },
-  title: { color: '#fff', fontSize: 18, fontWeight: 'bold' },
-  tripId: { color: '#b7e4c7', fontSize: 12, marginTop: 2 },
-  statsRow: { flexDirection: 'row', gap: 8 },
-  statItem: { alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.15)', borderRadius: 8, padding: 6, minWidth: 50 },
-  statNumber: { fontSize: 16, fontWeight: 'bold', color: '#fff' },
-  statLabel: { fontSize: 9, color: '#b7e4c7', marginTop: 1 },
+  title: { color: '#fff', fontSize: moderateScale(18), fontWeight: 'bold' },
+  tripId: { color: '#b7e4c7', fontSize: moderateScale(12), marginTop: verticalScale(2) },
+  statsRow: { flexDirection: 'row', gap: verticalScale(8) },
+  statItem: { alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.15)', borderRadius: moderateScale(8), padding: scale(6), minWidth: 50 },
+  statNumber: { fontSize: moderateScale(16), fontWeight: 'bold', color: '#fff' },
+  statLabel: { fontSize: moderateScale(9), color: '#b7e4c7', marginTop: verticalScale(1) },
   noTrip: {
-    backgroundColor: '#fffbeb', padding: 16,
-    margin: 16, borderRadius: 10, borderWidth: 1, borderColor: '#fcd34d',
+    backgroundColor: '#fffbeb', padding: scale(16),
+    margin: scale(16), borderRadius: moderateScale(10), borderWidth: 1, borderColor: '#fcd34d',
     alignItems: 'center',
   },
-  noTripEmoji: { fontSize: 32, marginBottom: 8 },
-  noTripText: { color: '#92400e', fontSize: 13, textAlign: 'center' },
+  noTripEmoji: { fontSize: moderateScale(32), marginBottom: verticalScale(8) },
+  noTripText: { color: '#92400e', fontSize: moderateScale(13), textAlign: 'center' },
   card: {
-    backgroundColor: '#fff', borderRadius: 16, padding: 16,
-    marginBottom: 12, shadowColor: '#000',
+    backgroundColor: '#fff', borderRadius: moderateScale(16), padding: scale(16),
+    marginBottom: verticalScale(12), shadowColor: '#000',
     shadowOpacity: 0.05, shadowRadius: 8, elevation: 2
   },
-  cardHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 10 },
+  cardHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: verticalScale(10) },
   avatar: {
-    width: 44, height: 44, borderRadius: 22,
+    width: scale(44), height: verticalScale(44), borderRadius: moderateScale(22),
     backgroundColor: '#d8f3dc', alignItems: 'center', justifyContent: 'center'
   },
-  avatarText: { fontSize: 18, fontWeight: 'bold', color: '#2d6a4f' },
-  info: { flex: 1, marginLeft: 10 },
-  studentName: { fontSize: 15, fontWeight: 'bold', color: '#2d3748' },
-  phone: { fontSize: 12, color: '#718096', marginTop: 2 },
-  statusBadge: { borderRadius: 8, paddingHorizontal: 8, paddingVertical: 4 },
+  avatarText: { fontSize: moderateScale(18), fontWeight: 'bold', color: '#2d6a4f' },
+  info: { flex: 1, marginLeft: scale(10) },
+  studentName: { fontSize: moderateScale(15), fontWeight: 'bold', color: '#2d3748' },
+  phone: { fontSize: moderateScale(12), color: '#718096', marginTop: verticalScale(2) },
+  statusBadge: { borderRadius: moderateScale(8), paddingHorizontal: scale(8), paddingVertical: verticalScale(4) },
   statusBoarded: { backgroundColor: '#d8f3dc' },
   statusDropped: { backgroundColor: '#ebf4ff' },
   statusWaiting: { backgroundColor: '#f0f4f8' },
-  statusBadgeText: { fontSize: 11, fontWeight: '600', color: '#2d3748' },
-  locationRow: { flexDirection: 'row', marginTop: 4 },
-  locationLabel: { fontSize: 12, color: '#718096', marginRight: 4, width: 70 },
-  locationValue: { fontSize: 12, color: '#2d3748', flex: 1 },
-  buttonsRow: { flexDirection: 'row', gap: 8, marginTop: 10 },
+  statusBadgeText: { fontSize: moderateScale(11), fontWeight: '600', color: '#2d3748' },
+  locationRow: { flexDirection: 'row', marginTop: verticalScale(4) },
+  locationLabel: { fontSize: moderateScale(12), color: '#718096', marginRight: scale(4), width: scale(70) },
+  locationValue: { fontSize: moderateScale(12), color: '#2d3748', flex: 1 },
+  buttonsRow: { flexDirection: 'row', gap: verticalScale(8), marginTop: verticalScale(10) },
   boardButton: {
     flex: 1, backgroundColor: '#2d6a4f',
-    borderRadius: 10, paddingVertical: 10, alignItems: 'center'
+    borderRadius: moderateScale(10), paddingVertical: verticalScale(10), alignItems: 'center'
   },
   dropButton: {
     flex: 1, backgroundColor: '#4a6fa5',
-    borderRadius: 10, paddingVertical: 10, alignItems: 'center'
+    borderRadius: moderateScale(10), paddingVertical: verticalScale(10), alignItems: 'center'
   },
   buttonDisabled: { opacity: 0.6 },
-  buttonText: { color: '#fff', fontSize: 13, fontWeight: '600' },
+  buttonText: { color: '#fff', fontSize: moderateScale(13), fontWeight: '600' },
   doneTag: {
     flex: 1, backgroundColor: '#f0f4f8',
-    borderRadius: 10, paddingVertical: 10, alignItems: 'center'
+    borderRadius: moderateScale(10), paddingVertical: verticalScale(10), alignItems: 'center'
   },
-  doneText: { color: '#718096', fontSize: 13, fontWeight: '600' },
-  empty: { alignItems: 'center', paddingTop: 60 },
-  emptyEmoji: { fontSize: 48, marginBottom: 12 },
-  emptyTitle: { fontSize: 16, fontWeight: 'bold', color: '#2d3748' },
-  emptySub: { fontSize: 13, color: '#718096', marginTop: 4, textAlign: 'center' },
+  doneText: { color: '#718096', fontSize: moderateScale(13), fontWeight: '600' },
+  empty: { alignItems: 'center', paddingTop: verticalScale(60) },
+  emptyEmoji: { fontSize: moderateScale(48), marginBottom: verticalScale(12) },
+  emptyTitle: { fontSize: moderateScale(16), fontWeight: 'bold', color: '#2d3748' },
+  emptySub: { fontSize: moderateScale(13), color: '#718096', marginTop: verticalScale(4), textAlign: 'center' },
 });

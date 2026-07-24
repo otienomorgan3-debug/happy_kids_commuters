@@ -6,6 +6,7 @@ const {
   getPaymentHistory,
   getPaymentSummary,
   getPaymentReceipt,
+  getPaymentData,
   getAllPayments,
   getPaymentStats,
   generateInvoices,
@@ -17,6 +18,7 @@ const { protect, restrictTo } = require('../middleware/authMiddleware');
 // Parent routes
 router.post('/mpesa/stkpush', protect, restrictTo('parent'), initiateStkPush);
 router.post('/mpesa/callback', handleMpesaCallback);
+router.get('/data', protect, restrictTo('parent'), getPaymentData);
 router.get('/history', protect, restrictTo('parent'), getPaymentHistory);
 router.get('/summary', protect, restrictTo('parent'), getPaymentSummary);
 router.get('/receipts/:id', protect, restrictTo('parent'), getPaymentReceipt);

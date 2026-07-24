@@ -2,6 +2,7 @@ import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
   TextInput, ActivityIndicator, Alert
 } from 'react-native';
+import { moderateScale, scale, verticalScale, SCREEN_WIDTH, dynamicFontSize } from '../../utils/responsive';
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'expo-router';
 import { getMyStudents, markChildAbsent } from '../../constants/api';
@@ -83,7 +84,7 @@ export default function MarkAbsentScreen() {
           <Text style={styles.backText}>← Back</Text>
         </TouchableOpacity>
         <Text style={styles.title}>Mark Child Absent</Text>
-        <View style={{ width: 56 }} />
+        <View style={{ width: SCREEN_WIDTH < 350 ? scale(48) : scale(56) }} />
       </View>
 
       <View style={styles.content}>
@@ -150,27 +151,27 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#f8f9fa' },
   centered: {
     flex: 1, alignItems: 'center', justifyContent: 'center',
-    backgroundColor: '#f8f9fa', paddingHorizontal: 32,
+    backgroundColor: '#f8f9fa', paddingHorizontal: scale(32),
   },
   header: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    backgroundColor: '#4a6fa5', paddingTop: 56, paddingHorizontal: 16, paddingBottom: 16,
+    backgroundColor: '#4a6fa5', paddingTop: verticalScale(56), paddingHorizontal: scale(16), paddingBottom: verticalScale(16),
   },
-  title: { color: '#fff', fontSize: 18, fontWeight: '800' },
-  backText: { color: '#dceeff', fontSize: 15, fontWeight: '700' },
-  content: { padding: 16 },
+  title: { color: '#fff', fontSize: dynamicFontSize(16, 17, 18), fontWeight: '800' },
+  backText: { color: '#dceeff', fontSize: dynamicFontSize(13, 14, 15), fontWeight: '700' },
+  content: { padding: scale(16) },
   instruction: {
-    fontSize: 14, color: '#718096', lineHeight: 20,
-    marginBottom: 20,
+    fontSize: dynamicFontSize(12, 13, 14), color: '#718096', lineHeight: 20,
+    marginBottom: verticalScale(20),
   },
   label: {
-    fontSize: 14, fontWeight: '700', color: '#2d3748',
-    marginBottom: 8, marginTop: 8,
+    fontSize: dynamicFontSize(12, 13, 14), fontWeight: '700', color: '#2d3748',
+    marginBottom: verticalScale(8), marginTop: verticalScale(8),
   },
   studentCard: {
     flexDirection: 'row', alignItems: 'center',
-    backgroundColor: '#fff', borderRadius: 14,
-    padding: 14, marginBottom: 10,
+    backgroundColor: '#fff', borderRadius: moderateScale(14),
+    padding: scale(14), marginBottom: verticalScale(10),
     shadowColor: '#000', shadowOpacity: 0.04, shadowRadius: 6, elevation: 1,
   },
   selectedCard: {
@@ -178,36 +179,36 @@ const styles = StyleSheet.create({
     backgroundColor: '#f0f5ff',
   },
   radioCircle: {
-    width: 22, height: 22, borderRadius: 11,
+    width: scale(22), height: verticalScale(22), borderRadius: moderateScale(11),
     borderWidth: 2, borderColor: '#cbd5e0',
     alignItems: 'center', justifyContent: 'center',
-    marginRight: 12,
+    marginRight: scale(12),
   },
   radioFilled: {
-    width: 12, height: 12, borderRadius: 6,
+    width: scale(12), height: verticalScale(12), borderRadius: moderateScale(6),
     backgroundColor: '#4a6fa5',
   },
-  studentName: { fontSize: 16, fontWeight: '700', color: '#2d3748' },
-  studentSchool: { fontSize: 12, color: '#718096', marginTop: 2 },
+  studentName: { fontSize: dynamicFontSize(14, 15, 16), fontWeight: '700', color: '#2d3748' },
+  studentSchool: { fontSize: dynamicFontSize(10, 11, 12), color: '#718096', marginTop: verticalScale(2) },
   textArea: {
-    backgroundColor: '#fff', borderRadius: 12,
+    backgroundColor: '#fff', borderRadius: moderateScale(12),
     borderWidth: 1, borderColor: '#e2e8f0',
-    padding: 14, fontSize: 14, color: '#2d3748',
-    minHeight: 80, marginBottom: 8,
+    padding: scale(14), fontSize: dynamicFontSize(13, 14, 15), color: '#2d3748',
+    minHeight: 80, marginBottom: verticalScale(8),
   },
   submitButton: {
-    backgroundColor: '#4a6fa5', borderRadius: 12,
-    paddingVertical: 14, alignItems: 'center',
-    marginTop: 20,
+    backgroundColor: '#4a6fa5', borderRadius: moderateScale(12),
+    paddingVertical: verticalScale(14), alignItems: 'center',
+    marginTop: verticalScale(20),
   },
   submitDisabled: { opacity: 0.5 },
-  submitText: { color: '#fff', fontWeight: '700', fontSize: 16 },
-  successEmoji: { fontSize: 56, marginBottom: 16 },
-  successTitle: { fontSize: 20, fontWeight: 'bold', color: '#2d3748', marginBottom: 8 },
-  successSub: { fontSize: 14, color: '#718096', textAlign: 'center' },
+  submitText: { color: '#fff', fontWeight: '700', fontSize: dynamicFontSize(14, 15, 16) },
+  successEmoji: { fontSize: moderateScale(56), marginBottom: verticalScale(16) },
+  successTitle: { fontSize: dynamicFontSize(18, 19, 20), fontWeight: 'bold', color: '#2d3748', marginBottom: verticalScale(8) },
+  successSub: { fontSize: dynamicFontSize(12, 13, 14), color: '#718096', textAlign: 'center' },
   emptyCard: {
-    backgroundColor: '#fff', borderRadius: 14, padding: 20,
-    alignItems: 'center', marginBottom: 12,
+    backgroundColor: '#fff', borderRadius: moderateScale(14), padding: scale(20),
+    alignItems: 'center', marginBottom: verticalScale(12),
   },
-  emptyText: { fontSize: 14, color: '#718096' },
+  emptyText: { fontSize: dynamicFontSize(12, 13, 14), color: '#718096' },
 });

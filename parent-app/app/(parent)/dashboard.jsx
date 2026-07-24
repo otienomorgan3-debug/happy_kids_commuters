@@ -4,6 +4,7 @@ import {
 } from 'react-native';
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter, useFocusEffect } from 'expo-router';
+import { moderateScale, scale, verticalScale, SCREEN_WIDTH, isSmallScreen, dynamicFontSize } from '../../utils/responsive';
 import { getMe, getMyStudents, getNotifications, removeToken } from '../../constants/api';
 
 export default function Dashboard() {
@@ -180,90 +181,113 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row', justifyContent: 'space-between',
     alignItems: 'center', backgroundColor: '#4a6fa5',
-    padding: 24, paddingTop: 56, paddingBottom: 32,
+    padding: scale(24), paddingTop: verticalScale(56), paddingBottom: verticalScale(32),
   },
-  greeting: { color: '#bee3f8', fontSize: 14 },
-  name: { color: '#fff', fontSize: 22, fontWeight: 'bold', marginTop: 2 },
-  notifButton: { position: 'relative', padding: 8 },
-  notifEmoji: { fontSize: 24 },
+  greeting: { color: '#bee3f8', fontSize: moderateScale(14) },
+  name: { color: '#fff', fontSize: moderateScale(22), fontWeight: 'bold', marginTop: verticalScale(2) },
+  notifButton: { position: 'relative', padding: scale(8) },
+  notifEmoji: { fontSize: moderateScale(24) },
   badge: {
-    position: 'absolute', top: 4, right: 4,
-    backgroundColor: '#e53e3e', borderRadius: 10,
-    width: 18, height: 18, alignItems: 'center', justifyContent: 'center'
+    position: 'absolute', top: verticalScale(4), right: scale(4),
+    backgroundColor: '#e53e3e', borderRadius: scale(10),
+    width: scale(18), height: scale(18), alignItems: 'center', justifyContent: 'center'
   },
-  badgeText: { color: '#fff', fontSize: 10, fontWeight: 'bold' },
+  badgeText: { color: '#fff', fontSize: moderateScale(10), fontWeight: 'bold' },
   sectionHeaderRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginHorizontal: 16,
-    marginTop: 24,
-    marginBottom: 12,
+    marginHorizontal: scale(16),
+    marginTop: verticalScale(24),
+    marginBottom: verticalScale(12),
   },
   sectionTitle: {
-    fontSize: 17, fontWeight: 'bold', color: '#2d3748',
+    fontSize: moderateScale(17), fontWeight: 'bold', color: '#2d3748',
   },
   addChildButton: {
     backgroundColor: '#4a6fa5',
     borderRadius: 999,
-    paddingHorizontal: 14,
-    paddingVertical: 8,
+    paddingHorizontal: scale(14),
+    paddingVertical: verticalScale(8),
   },
-  addChildButtonText: { color: '#fff', fontSize: 12, fontWeight: '700' },
+  addChildButtonText: { color: '#fff', fontSize: moderateScale(12), fontWeight: '700' },
   studentCard: {
-    backgroundColor: '#fff', borderRadius: 12, padding: 10,
-    flex: 1, minWidth: '30%', maxWidth: '32%',
-    shadowColor: '#000', shadowOpacity: 0.04, shadowRadius: 6, elevation: 1
+    backgroundColor: '#fff', borderRadius: verticalScale(12), padding: verticalScale(14),
+    width: isSmallScreen() ? '100%' : '48%',
+    minWidth: isSmallScreen() ? '100%' : scale(150),
+    maxWidth: isSmallScreen() ? '100%' : scale(200),
+    shadowColor: '#000', shadowOpacity: 0.04, shadowRadius: verticalScale(6), elevation: 1,
+    marginBottom: verticalScale(12),
+    minHeight: verticalScale(200),
+    flexDirection: 'column',
+    justifyContent: 'space-between',
+    gap: verticalScale(8)
   },
-  studentHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 8 },
+  studentHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: verticalScale(12) },
   avatar: {
-    width: 32, height: 32, borderRadius: 16,
-    backgroundColor: '#ebf4ff', alignItems: 'center', justifyContent: 'center'
+    width: verticalScale(40), height: verticalScale(40), borderRadius: verticalScale(20),
+    backgroundColor: '#ebf4ff', alignItems: 'center', justifyContent: 'center',
+    marginRight: scale(10)
   },
-  avatarText: { fontSize: 14, fontWeight: 'bold', color: '#4a6fa5' },
-  studentInfo: { marginLeft: 8, flex: 1 },
-  studentName: { fontSize: 12, fontWeight: '700', color: '#2d3748' },
-  schoolName: { fontSize: 10, color: '#718096', marginTop: 1 },
-  statusBadge: { borderRadius: 8, padding: 6, marginBottom: 6, alignSelf: 'flex-start' },
-  statusText: { fontSize: 10, fontWeight: '700', color: '#2d3748' },
-  locationValue: { fontSize: 10, color: '#4a5568', marginBottom: 6 },
+  avatarText: { fontSize: moderateScale(14), fontWeight: 'bold', color: '#4a6fa5' },
+  studentInfo: { flex: 1, minWidth: 0, marginRight: scale(6) },
+  studentName: { fontSize: dynamicFontSize(11, 12, 13), fontWeight: '700', color: '#2d3748', numberOfLines: 1, flexShrink: 1 },
+  schoolName: { fontSize: dynamicFontSize(9, 10, 11), color: '#718096', marginTop: verticalScale(2), numberOfLines: 1, flexShrink: 1 },
+  statusBadge: { borderRadius: verticalScale(8), paddingVertical: verticalScale(4), paddingHorizontal: verticalScale(6), marginBottom: verticalScale(6), alignSelf: 'flex-start', flexShrink: 1, maxWidth: '100%' },
+  statusText: { fontSize: dynamicFontSize(8, 9, 10), fontWeight: '700', color: '#2d3748', numberOfLines: 1, flexShrink: 1 },
+  locationValue: { fontSize: dynamicFontSize(8, 9, 10), color: '#4a5568', marginBottom: verticalScale(8), numberOfLines: 1, flexShrink: 1, width: '100%' },
   trackButton: {
-    backgroundColor: '#4a6fa5', borderRadius: 8,
-    paddingVertical: 6, alignItems: 'center', marginTop: 'auto'
+    backgroundColor: '#4a6fa5', borderRadius: verticalScale(8),
+    paddingVertical: verticalScale(10), alignItems: 'center',
+    paddingHorizontal: verticalScale(12),
+    marginTop: 'auto',
+    alignSelf: 'stretch',
+    minHeight: verticalScale(36)
   },
-  trackButtonText: { color: '#fff', fontWeight: '700', fontSize: 10 },
+  trackButtonText: { color: '#fff', fontWeight: '700', fontSize: dynamicFontSize(10, 11, 12), textAlign: 'center' },
   studentsGrid: {
     flexDirection: 'row', flexWrap: 'wrap',
-    marginHorizontal: 12, marginBottom: 24, gap: 10
+    marginHorizontal: scale(12), marginBottom: verticalScale(24), gap: verticalScale(10),
+    justifyContent: 'space-between'
   },
   emptyCard: {
-    backgroundColor: '#fff', borderRadius: 16, padding: 32,
-    marginHorizontal: 16, alignItems: 'center',
-    shadowColor: '#000', shadowOpacity: 0.04, shadowRadius: 8, elevation: 1
+    backgroundColor: '#fff', borderRadius: verticalScale(16), padding: verticalScale(32),
+    marginHorizontal: scale(16), alignItems: 'center',
+    shadowColor: '#000', shadowOpacity: 0.04, shadowRadius: verticalScale(8), elevation: 1
   },
-  emptyEmoji: { fontSize: 48, marginBottom: 12 },
-  emptyTitle: { fontSize: 16, fontWeight: 'bold', color: '#2d3748' },
-  emptySub: { fontSize: 13, color: '#718096', marginTop: 4, textAlign: 'center' },
+  emptyEmoji: { fontSize: moderateScale(48), marginBottom: verticalScale(12) },
+  emptyTitle: { fontSize: moderateScale(16), fontWeight: 'bold', color: '#2d3748' },
+  emptySub: { fontSize: moderateScale(13), color: '#718096', marginTop: verticalScale(4), textAlign: 'center' },
   emptyActionButton: {
-    marginTop: 14,
+    marginTop: verticalScale(14),
     backgroundColor: '#4a6fa5',
-    borderRadius: 12,
-    paddingHorizontal: 18,
-    paddingVertical: 10,
+    borderRadius: verticalScale(12),
+    paddingHorizontal: scale(18),
+    paddingVertical: verticalScale(10),
   },
-  emptyActionText: { color: '#fff', fontWeight: '700', fontSize: 13 },
+  emptyActionText: { color: '#fff', fontWeight: '700', fontSize: moderateScale(13) },
   actionsGrid: {
-    flexDirection: 'row', flexWrap: 'wrap', marginHorizontal: 16,
-    marginBottom: 32, gap: 10
+    flexDirection: 'row', flexWrap: 'wrap', marginHorizontal: scale(16),
+    marginBottom: verticalScale(32), gap: verticalScale(12),
+    justifyContent: 'space-between'
   },
   actionCard: {
-    width: '23%', minWidth: 72, backgroundColor: '#fff', borderRadius: 16,
-    padding: 12, alignItems: 'center', justifyContent: 'center',
-    shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 8, elevation: 2,
-    flexDirection: 'column', gap: 8,
+    width: isSmallScreen() ? '48%' : '30%',
+    minWidth: scale(100),
+    maxWidth: scale(130),
+    backgroundColor: '#fff', 
+    borderRadius: verticalScale(16),
+    padding: verticalScale(16), 
+    alignItems: 'center', 
+    justifyContent: 'center',
+    shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: verticalScale(8), elevation: 2,
+    flexDirection: 'column', 
+    gap: verticalScale(12),
+    marginBottom: verticalScale(12),
+    minHeight: verticalScale(130)
   },
   actionAccent: {
-    width: 18, height: 4, borderRadius: 2,
+    width: scale(28), height: verticalScale(6), borderRadius: verticalScale(3),
   },
-  actionLabel: { fontSize: 10, fontWeight: '700', color: '#2d3748', textAlign: 'center', textTransform: 'uppercase', letterSpacing: 0.3 },
+  actionLabel: { fontSize: dynamicFontSize(9, 10, 11), fontWeight: '700', color: '#2d3748', textAlign: 'center', textTransform: 'uppercase', letterSpacing: 0.3, numberOfLines: 2, lineHeight: moderateScale(15) },
 });

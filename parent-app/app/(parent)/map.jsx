@@ -1,4 +1,5 @@
 import { View, Text, StyleSheet, RefreshControl, ScrollView, ActivityIndicator } from 'react-native';
+import { moderateScale, scale, verticalScale, SCREEN_WIDTH, dynamicFontSize } from '../../utils/responsive';
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { io } from 'socket.io-client';
@@ -179,45 +180,45 @@ export default function MapScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#f8f9fa' },
   header: {
-    backgroundColor: '#4a6fa5', paddingTop: 56, paddingBottom: 16, paddingHorizontal: 20,
+    backgroundColor: '#4a6fa5', paddingTop: verticalScale(56), paddingBottom: verticalScale(16), paddingHorizontal: scale(20),
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
   },
-  title: { color: '#fff', fontSize: 18, fontWeight: 'bold' },
-  statusRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  dot: { width: 8, height: 8, borderRadius: 4 },
-  statusText: { color: '#fff', fontSize: 12 },
+  title: { color: '#fff', fontSize: dynamicFontSize(16, 17, 18), fontWeight: 'bold' },
+  statusRow: { flexDirection: 'row', alignItems: 'center', gap: verticalScale(6) },
+  dot: { width: scale(8), height: verticalScale(8), borderRadius: moderateScale(4) },
+  statusText: { color: '#fff', fontSize: dynamicFontSize(11, 12, 13) },
   map: { flex: 1, minHeight: 300 },
-  busMarker: { fontSize: 32 },
+  busMarker: { fontSize: moderateScale(32) },
   infoBar: {
-    backgroundColor: '#fff', padding: 12, alignItems: 'center', borderTopWidth: 1, borderTopColor: '#e2e8f0'
+    backgroundColor: '#fff', padding: scale(12), alignItems: 'center', borderTopWidth: 1, borderTopColor: '#e2e8f0'
   },
-  infoText: { color: '#718096', fontSize: 13 },
+  infoText: { color: '#718096', fontSize: dynamicFontSize(11, 12, 13) },
   studentCard: {
-    backgroundColor: '#fff', marginHorizontal: 16, marginTop: 12,
-    borderRadius: 16, padding: 16, borderWidth: 1, borderColor: '#e2e8f0'
+    backgroundColor: '#fff', marginHorizontal: scale(16), marginTop: verticalScale(12),
+    borderRadius: moderateScale(16), padding: scale(16), borderWidth: 1, borderColor: '#e2e8f0'
   },
-  studentCardTop: { flexDirection: 'row', alignItems: 'center', marginBottom: 10 },
+  studentCardTop: { flexDirection: 'row', alignItems: 'center', marginBottom: verticalScale(10) },
   studentAvatar: {
-    width: 44, height: 44, borderRadius: 22,
+    width: scale(44), height: verticalScale(44), borderRadius: moderateScale(22),
     backgroundColor: '#ebf4ff', alignItems: 'center', justifyContent: 'center'
   },
-  studentAvatarText: { fontSize: 18, fontWeight: 'bold', color: '#4a6fa5' },
-  studentInfo: { marginLeft: 12, flex: 1 },
-  studentName: { fontSize: 15, fontWeight: '700', color: '#2d3748' },
-  studentSchool: { fontSize: 12, color: '#718096', marginTop: 2 },
-  locationValue: { fontSize: 13, color: '#2d3748', marginTop: 4 },
-  routeHint: { fontSize: 12, color: '#4a6fa5', marginTop: 4, fontWeight: '600' },
+  studentAvatarText: { fontSize: moderateScale(18), fontWeight: 'bold', color: '#4a6fa5' },
+  studentInfo: { marginLeft: scale(12), flex: 1 },
+  studentName: { fontSize: dynamicFontSize(13, 14, 15), fontWeight: '700', color: '#2d3748' },
+  studentSchool: { fontSize: dynamicFontSize(10, 11, 12), color: '#718096', marginTop: verticalScale(2) },
+  locationValue: { fontSize: dynamicFontSize(11, 12, 13), color: '#2d3748', marginTop: verticalScale(4) },
+  routeHint: { fontSize: dynamicFontSize(10, 11, 12), color: '#4a6fa5', marginTop: verticalScale(4), fontWeight: '600' },
   busRow: {
     flexDirection: 'row', alignItems: 'center',
-    backgroundColor: '#fff', marginHorizontal: 16, marginTop: 12,
-    paddingHorizontal: 16, paddingVertical: 12, borderRadius: 16,
+    backgroundColor: '#fff', marginHorizontal: scale(16), marginTop: verticalScale(12),
+    paddingHorizontal: scale(16), paddingVertical: verticalScale(12), borderRadius: moderateScale(16),
     borderWidth: 1, borderColor: '#e2e8f0'
   },
-  busRowEmoji: { fontSize: 24, marginRight: 12 },
+  busRowEmoji: { fontSize: moderateScale(24), marginRight: scale(12) },
   busRowInfo: { flex: 1 },
-  busRowTitle: { fontSize: 14, fontWeight: '600', color: '#2d3748' },
-  busRowSub: { fontSize: 12, color: '#718096', marginTop: 2 },
-  busRowEta: { fontSize: 12, color: '#2d6a4f', marginTop: 4, fontWeight: '600' },
-  busRowTime: { fontSize: 11, color: '#a0aec0', marginLeft: 8 },
+  busRowTitle: { fontSize: dynamicFontSize(12, 13, 14), fontWeight: '600', color: '#2d3748' },
+  busRowSub: { fontSize: dynamicFontSize(10, 11, 12), color: '#718096', marginTop: verticalScale(2) },
+  busRowEta: { fontSize: dynamicFontSize(10, 11, 12), color: '#2d6a4f', marginTop: verticalScale(4), fontWeight: '600' },
+  busRowTime: { fontSize: dynamicFontSize(10, 11, 12), color: '#a0aec0', marginLeft: scale(8) },
   centered: { flex: 1, justifyContent: 'center', alignItems: 'center', minHeight: 300 },
 });

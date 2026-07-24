@@ -1,4 +1,5 @@
 import { TouchableOpacity, Text, ActivityIndicator, View } from 'react-native';
+import { responsiveFontSize, paddingScale, radiusScale } from '../utils/responsive';
 
 export default function Button({ title, onPress, disabled, loading, variant = 'primary', style }) {
   const backgroundColor = variant === 'secondary' ? '#e2e8f0' : '#4a6fa5';
@@ -9,24 +10,22 @@ export default function Button({ title, onPress, disabled, loading, variant = 'p
       onPress={onPress}
       disabled={disabled || loading}
       style={[
-        styles.button,
-        { backgroundColor: disabled || loading ? '#a0aec0' : backgroundColor },
+        {
+          borderRadius: radiusScale(12),
+          paddingVertical: paddingScale(14),
+          paddingHorizontal: paddingScale(18),
+          alignItems: 'center',
+          justifyContent: 'center',
+          backgroundColor: disabled || loading ? '#a0aec0' : backgroundColor,
+        },
         style,
       ]}
     >
       {loading ? (
         <ActivityIndicator color="#fff" />
       ) : (
-        <Text style={[styles.text, { color }]}>{title}</Text>
+        <Text style={{ fontSize: responsiveFontSize(15), fontWeight: '700', color }}>{title}</Text>
       )}
     </TouchableOpacity>
   );
 }
-
-const styles = {
-  button: {
-    borderRadius: 12, paddingVertical: 14, paddingHorizontal: 18,
-    alignItems: 'center', justifyContent: 'center'
-  },
-  text: { fontSize: 15, fontWeight: '700' },
-};

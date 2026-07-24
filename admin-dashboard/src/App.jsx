@@ -16,6 +16,7 @@ import Payments from './pages/Payments';
 import Analytics from './pages/Analytics';
 import Incidents from './pages/Incidents';
 import FinancialReports from './pages/FinancialReports';
+import Messaging from './pages/Messaging';
 
 function ProtectedLayout() {
   const { user, loading } = useAuth();
@@ -42,6 +43,7 @@ function ProtectedLayout() {
           <Route path="/routes" element={<RoutesPage />} />
           <Route path="/map" element={<LiveMap />} />
           <Route path="/payments" element={<Payments />} />
+          <Route path="/messaging" element={<Messaging />} />
           <Route path="/financial-reports" element={<FinancialReports />} />
           <Route path="/incidents" element={<Incidents />} />
           <Route path="/analytics" element={<Analytics />} />

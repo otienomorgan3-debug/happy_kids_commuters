@@ -563,12 +563,78 @@ const processRefund = async (req, res) => {
   }
 };
 
+// Combined endpoint for payment data (reduces number of API calls)
+const getPaymentData = async (req, res) => {
+  try {
+    const parentId = await getParentIdForUser(req.user.id);
+    if (!parentId) {
+      return res.status(404).json({ message: 'Parent profile not found' });
+    }
+
+    const [studentsResult, paymentsResult, historyResult] = await Promise.all([
+      pool.query(
+        `SELECT s.id, s.name, COALESCE(s.transport_fee, 0) as transport_fee,
+                COALESCE(s.outstanding_balance, 0) as outstanding_balance,
+                s.last_payment_at, sc.school_name
+         FROM students s
+         LEFT JOIN schools sc ON s.school_id = sc.id
+         WHERE s.parent_id = $1
+         ORDER BY s.name`,
+        [parentId]
+      ),
+      pool.query(
+        `SELECT COUNT(*) FILTER (WHERE status = 'paid') as paid_count,
+                COUNT(*) FILTER (WHERE status = 'pending') as pending_count,
+                COALESCE(SUM(amount) FILTER (WHERE status = 'paid'), 0) as total_paid
+         FROM payments
+         WHERE parent_id = $1`,
+        [parentId]
+      ),
+      pool.query(
+        `SELECT p.id, p.amount, p.status, p.mpesa_receipt, p.phone_number,
+                p.account_reference, p.checkout_request_id, p.merchant_request_id,
+                p.result_code, p.result_desc, p.balance_before, p.balance_after,
+                p.transaction_date, p.created_at, p.updated_at,
+                s.id as student_id, s.name as student_name
+         FROM payments p
+         LEFT JOIN students s ON p.student_id = s.id
+         WHERE p.parent_id = $1
+         ORDER BY p.created_at DESC
+         LIMIT 100`,
+        [parentId]
+      ),
+    ]);
+
+    const totalOutstanding = studentsResult.rows.reduce(
+      (sum, student) => sum + roundMoney(student.outstanding_balance),
+      0
+    );
+
+    res.status(200).json({
+      data: {
+        summary: {
+          students: studentsResult.rows,
+          paid_count: Number(paymentsResult.rows[0].paid_count || 0),
+          pending_count: Number(paymentsResult.rows[0].pending_count || 0),
+          total_paid: roundMoney(paymentsResult.rows[0].total_paid || 0),
+          total_outstanding: roundMoney(totalOutstanding),
+        },
+        payments: historyResult.rows,
+      },
+    });
+  } catch (error) {
+    console.error('Get payment data error:', error.message);
+    res.status(500).json({ message: 'Server error getting payment data' });
+  }
+};
+
 module.exports = {
   initiateStkPush,
   handleMpesaCallback,
   getPaymentHistory,
   getPaymentSummary,
   getPaymentReceipt,
+  getPaymentData,
   getAllPayments,
   getPaymentStats,
   generateInvoices,

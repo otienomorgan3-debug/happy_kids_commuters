@@ -54,6 +54,10 @@ export const getMe = () => API.get('/auth/me');
 export const getMyStudents = () => API.get('/students/my');
 export const getAssignedStudents = () => API.get('/students/assigned');
 
+// Students
+export const getSchools = () => API.get('/students/schools');
+export const addStudent = (data) => API.post('/students', data);
+
 // Attendance / driver
 export const startTrip = (data) => API.post('/attendance/trip/start', data);
 export const endTrip = (data) => API.post('/attendance/trip/end', data);
@@ -79,6 +83,7 @@ export const markAllRead = () => API.put('/notifications/read-all');
 
 // Payments
 export const initiateMpesaPayment = (data) => API.post('/payments/mpesa/stkpush', data);
+export const getPaymentData = () => API.get('/payments/data');
 export const getPaymentSummary = () => API.get('/payments/summary');
 export const getPaymentHistory = () => API.get('/payments/history');
 export const getPaymentReceipt = (id) => API.get(`/payments/receipts/${id}`);
@@ -89,11 +94,23 @@ export const getTransportHistory = () => API.get('/parent/transport-history');
 // Schedule preview
 export const getSchedulePreview = () => API.get('/parent/schedule-preview');
 
-// Chat
+// Chat (Parent)
 export const sendChatMessage = (data) => API.post('/parent/chat/send', data);
 export const getChatList = () => API.get('/parent/chat/list');
 export const getConversation = (otherUserId) => API.get(`/parent/chat/conversation/${otherUserId}`);
 export const markChatRead = (otherUserId) => API.put(`/parent/chat/read/${otherUserId}`);
+
+// Chat (Driver)
+export const sendDriverChatMessage = (data) => API.post('/attendance/chat/send', data);
+export const getDriverChatList = () => API.get('/attendance/chat/list');
+export const getDriverConversation = (otherUserId) => API.get(`/attendance/chat/conversation/${otherUserId}`);
+export const markDriverChatRead = (otherUserId) => API.put(`/attendance/chat/read/${otherUserId}`);
+
+// Chat (Admin)
+export const sendAdminChatMessage = (data) => API.post('/admin/chat/send', data);
+export const getAdminChatList = () => API.get('/admin/chat/list');
+export const getAdminConversation = (otherUserId) => API.get(`/admin/chat/conversation/${otherUserId}`);
+export const markAdminChatRead = (otherUserId) => API.put(`/admin/chat/read/${otherUserId}`);
 
 // Absence
 export const markChildAbsent = (data) => API.post('/parent/absent', data);

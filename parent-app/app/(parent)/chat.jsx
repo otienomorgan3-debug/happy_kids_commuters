@@ -3,9 +3,11 @@ import {
   TextInput, KeyboardAvoidingView, Platform, ActivityIndicator,
   RefreshControl
 } from 'react-native';
+import { moderateScale, scale, verticalScale, SCREEN_WIDTH, dynamicFontSize } from '../../utils/responsive';
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'expo-router';
 import { getChatList, getConversation, sendChatMessage, getMyStudents, SOCKET_URL } from '../../constants/api';
+import { Alert } from 'react-native';
 import { io } from 'socket.io-client';
 
 export default function ChatScreen() {
@@ -70,15 +72,24 @@ export default function ChatScreen() {
     if (!newMessage.trim() || !otherUser) return;
     setSending(true);
     try {
+      const chatType = otherUser.role === 'admin' || otherUser.role === 'superadmin' ? 'parent_admin' : 'parent_driver';
+      
       await sendChatMessage({
         receiver_id: otherUser.id,
         message: newMessage.trim(),
-        chat_type: otherUser.role === 'admin' || otherUser.role === 'superadmin' ? 'parent_admin' : 'parent_driver',
+        chat_type: chatType,
       });
+      
       setNewMessage('');
+      
+      // Reload conversation to show the sent message
       await loadConversation(otherUser.id);
+      
+      // Also reload chat list to update last message
+      await loadChats();
     } catch (error) {
-      console.error(error);
+      console.error('Error sending message:', error);
+      Alert.alert('Error', 'Failed to send message. Please try again.');
     } finally {
       setSending(false);
     }
@@ -96,16 +107,18 @@ export default function ChatScreen() {
       const students = studentsRes.data.students || [];
       const driverSet = new Set();
       const contacts = [];
+      
       students.forEach(s => {
-        if (s.bus_id && s.trip_id && !driverSet.has(s.driver_name)) {
+        if (s.driver_name && !driverSet.has(s.driver_name)) {
           driverSet.add(s.driver_name);
           contacts.push({
-            id: `driver_${s.bus_id}`,
+            id: s.driver_id || `driver_${s.bus_id}`,
             name: s.driver_name || 'Driver',
             role: 'driver',
           });
         }
       });
+      
       contacts.push({ id: 'admin', name: 'School Admin', role: 'admin' });
       setDrivers(contacts);
     } catch (error) {
@@ -143,7 +156,7 @@ export default function ChatScreen() {
         <Text style={styles.title}>
           {view === 'conversation' ? otherUser?.name || 'Chat' : 'Messages'}
         </Text>
-        <View style={{ width: 56 }} />
+        <View style={{ width: SCREEN_WIDTH < 350 ? scale(48) : scale(56) }} />
       </View>
 
       {view === 'list' ? (
@@ -151,7 +164,7 @@ export default function ChatScreen() {
           data={chats}
           keyExtractor={(item) => item.other_user_id?.toString()}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
-          contentContainerStyle={{ padding: 16, paddingBottom: 40 }}
+          contentContainerStyle={{ padding: scale(16), paddingBottom: verticalScale(40) }}
           ListHeaderComponent={
             <>
               <Text style={styles.sectionLabel}>Contacts</Text>
@@ -233,7 +246,7 @@ export default function ChatScreen() {
             ref={flatListRef}
             data={messages}
             keyExtractor={(item, idx) => `${item.id || idx}`}
-            contentContainerStyle={{ padding: 16, paddingBottom: 16 }}
+            contentContainerStyle={{ padding: scale(16), paddingBottom: verticalScale(16) }}
             ListEmptyComponent={
               <View style={styles.empty}>
                 <Text style={styles.emptyEmoji}>💬</Text>
@@ -288,72 +301,72 @@ const styles = StyleSheet.create({
   centered: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: '#f8f9fa' },
   header: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    backgroundColor: '#4a6fa5', paddingTop: 56, paddingHorizontal: 16, paddingBottom: 16,
+    backgroundColor: '#4a6fa5', paddingTop: verticalScale(56), paddingHorizontal: scale(16), paddingBottom: verticalScale(16),
   },
-  title: { color: '#fff', fontSize: 18, fontWeight: '800' },
-  backText: { color: '#dceeff', fontSize: 15, fontWeight: '700' },
+  title: { color: '#fff', fontSize: dynamicFontSize(16, 17, 18), fontWeight: '800' },
+  backText: { color: '#dceeff', fontSize: dynamicFontSize(13, 14, 15), fontWeight: '700' },
   sectionLabel: {
-    fontSize: 13, fontWeight: '700', color: '#718096',
-    marginBottom: 8, marginTop: 4, textTransform: 'uppercase', letterSpacing: 0.5,
+    fontSize: dynamicFontSize(11, 12, 13), fontWeight: '700', color: '#718096',
+    marginBottom: verticalScale(8), marginTop: verticalScale(4), textTransform: 'uppercase', letterSpacing: 0.5,
   },
   contactItem: {
     flexDirection: 'row', alignItems: 'center',
-    backgroundColor: '#fff', borderRadius: 12,
-    padding: 12, marginBottom: 8,
+    backgroundColor: '#fff', borderRadius: moderateScale(12),
+    padding: scale(12), marginBottom: verticalScale(8),
     shadowColor: '#000', shadowOpacity: 0.03, shadowRadius: 4, elevation: 1,
   },
   contactAvatar: {
-    width: 44, height: 44, borderRadius: 22,
-    backgroundColor: '#ebf4ff', alignItems: 'center', justifyContent: 'center', marginRight: 12,
+    width: scale(44), height: verticalScale(44), borderRadius: moderateScale(22),
+    backgroundColor: '#ebf4ff', alignItems: 'center', justifyContent: 'center', marginRight: scale(12),
   },
-  contactAvatarText: { fontSize: 18, fontWeight: 'bold', color: '#4a6fa5' },
-  contactName: { fontSize: 15, fontWeight: '700', color: '#2d3748' },
-  contactRole: { fontSize: 12, color: '#718096', marginTop: 2 },
-  divider: { height: 1, backgroundColor: '#e2e8f0', marginVertical: 12 },
+  contactAvatarText: { fontSize: moderateScale(18), fontWeight: 'bold', color: '#4a6fa5' },
+  contactName: { fontSize: dynamicFontSize(13, 14, 15), fontWeight: '700', color: '#2d3748' },
+  contactRole: { fontSize: dynamicFontSize(10, 11, 12), color: '#718096', marginTop: verticalScale(2) },
+  divider: { height: verticalScale(1), backgroundColor: '#e2e8f0', marginVertical: verticalScale(12) },
   chatCard: {
-    flexDirection: 'row', backgroundColor: '#fff', borderRadius: 14,
-    padding: 14, marginBottom: 10,
+    flexDirection: 'row', backgroundColor: '#fff', borderRadius: moderateScale(14),
+    padding: scale(14), marginBottom: verticalScale(10),
     shadowColor: '#000', shadowOpacity: 0.04, shadowRadius: 6, elevation: 1,
   },
   chatAvatar: {
-    width: 48, height: 48, borderRadius: 24,
-    backgroundColor: '#e3f2fd', alignItems: 'center', justifyContent: 'center', marginRight: 12,
+    width: scale(48), height: verticalScale(48), borderRadius: moderateScale(24),
+    backgroundColor: '#e3f2fd', alignItems: 'center', justifyContent: 'center', marginRight: scale(12),
   },
-  chatAvatarText: { fontSize: 20, fontWeight: 'bold', color: '#4a6fa5' },
+  chatAvatarText: { fontSize: moderateScale(20), fontWeight: 'bold', color: '#4a6fa5' },
   chatHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  chatName: { fontSize: 15, fontWeight: '700', color: '#2d3748' },
-  chatTime: { fontSize: 11, color: '#a0aec0' },
-  chatRole: { fontSize: 12, color: '#4a6fa5', fontWeight: '600', marginTop: 2 },
-  lastMessage: { fontSize: 13, color: '#718096', marginTop: 4 },
+  chatName: { fontSize: dynamicFontSize(13, 14, 15), fontWeight: '700', color: '#2d3748' },
+  chatTime: { fontSize: dynamicFontSize(10, 11, 12), color: '#a0aec0' },
+  chatRole: { fontSize: dynamicFontSize(10, 11, 12), color: '#4a6fa5', fontWeight: '600', marginTop: verticalScale(2) },
+  lastMessage: { fontSize: dynamicFontSize(11, 12, 13), color: '#718096', marginTop: verticalScale(4) },
   messageBubble: {
-    maxWidth: '80%', borderRadius: 16,
-    paddingHorizontal: 14, paddingVertical: 10,
-    marginBottom: 10,
+    maxWidth: SCREEN_WIDTH < 350 ? '85%' : '80%', borderRadius: moderateScale(16),
+    paddingHorizontal: scale(14), paddingVertical: verticalScale(10),
+    marginBottom: verticalScale(10),
   },
   sentBubble: { backgroundColor: '#4a6fa5', alignSelf: 'flex-end', borderBottomRightRadius: 4 },
   receivedBubble: { backgroundColor: '#e2e8f0', alignSelf: 'flex-start', borderBottomLeftRadius: 4 },
-  messageText: { fontSize: 15, lineHeight: 20 },
+  messageText: { fontSize: dynamicFontSize(13, 14, 15), lineHeight: 20 },
   sentText: { color: '#fff' },
   receivedText: { color: '#2d3748' },
-  messageTime: { fontSize: 10, color: '#a0aec0', marginTop: 4, textAlign: 'right' },
+  messageTime: { fontSize: dynamicFontSize(9, 10, 11), color: '#a0aec0', marginTop: verticalScale(4), textAlign: 'right' },
   inputBar: {
     flexDirection: 'row', alignItems: 'center',
-    paddingHorizontal: 12, paddingVertical: 8,
+    paddingHorizontal: scale(12), paddingVertical: verticalScale(8),
     backgroundColor: '#fff', borderTopWidth: 1, borderTopColor: '#e2e8f0',
   },
   input: {
-    flex: 1, backgroundColor: '#f7fafc', borderRadius: 20,
-    paddingHorizontal: 16, paddingVertical: 10,
-    fontSize: 15, color: '#2d3748', marginRight: 8,
+    flex: 1, backgroundColor: '#f7fafc', borderRadius: moderateScale(20),
+    paddingHorizontal: scale(16), paddingVertical: verticalScale(10),
+    fontSize: dynamicFontSize(13, 14, 15), color: '#2d3748', marginRight: scale(8),
   },
   sendButton: {
-    backgroundColor: '#4a6fa5', borderRadius: 20,
-    paddingHorizontal: 18, paddingVertical: 10,
+    backgroundColor: '#4a6fa5', borderRadius: moderateScale(20),
+    paddingHorizontal: scale(18), paddingVertical: verticalScale(10),
   },
   sendButtonDisabled: { opacity: 0.5 },
-  sendButtonText: { color: '#fff', fontWeight: '700', fontSize: 14 },
-  empty: { alignItems: 'center', paddingTop: 60 },
-  emptyEmoji: { fontSize: 48, marginBottom: 12 },
-  emptyTitle: { fontSize: 16, fontWeight: '800', color: '#2d3748' },
-  emptySub: { fontSize: 13, color: '#718096', marginTop: 6, textAlign: 'center', paddingHorizontal: 20 },
+  sendButtonText: { color: '#fff', fontWeight: '700', fontSize: dynamicFontSize(12, 13, 14) },
+  empty: { alignItems: 'center', paddingTop: verticalScale(60) },
+  emptyEmoji: { fontSize: moderateScale(48), marginBottom: verticalScale(12) },
+  emptyTitle: { fontSize: dynamicFontSize(14, 15, 16), fontWeight: '800', color: '#2d3748' },
+  emptySub: { fontSize: dynamicFontSize(11, 12, 13), color: '#718096', marginTop: verticalScale(6), textAlign: 'center', paddingHorizontal: scale(20) },
 });

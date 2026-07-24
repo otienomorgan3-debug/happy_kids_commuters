@@ -2,6 +2,7 @@ import {
   View, Text, StyleSheet, TouchableOpacity,
   ScrollView, Alert
 } from 'react-native';
+import { moderateScale, scale, verticalScale, SCREEN_WIDTH, dynamicFontSize } from '../../utils/responsive';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'expo-router';
 import { getMe, getMyStudents, removeToken } from '../../constants/api';
@@ -100,62 +101,62 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#f8f9fa' },
   header: {
     backgroundColor: '#4a6fa5', alignItems: 'center',
-    paddingTop: 60, paddingBottom: 32,
+    paddingTop: verticalScale(60), paddingBottom: verticalScale(32),
   },
   avatar: {
-    width: 80, height: 80, borderRadius: 40,
+    width: scale(80), height: verticalScale(80), borderRadius: moderateScale(40),
     backgroundColor: '#63b3ed', alignItems: 'center',
-    justifyContent: 'center', marginBottom: 12,
+    justifyContent: 'center', marginBottom: verticalScale(12),
   },
-  avatarText: { fontSize: 32, fontWeight: 'bold', color: '#fff' },
-  name: { fontSize: 22, fontWeight: 'bold', color: '#fff' },
-  role: { fontSize: 14, color: '#bee3f8', marginTop: 4 },
+  avatarText: { fontSize: moderateScale(32), fontWeight: 'bold', color: '#fff' },
+  name: { fontSize: dynamicFontSize(20, 21, 22), fontWeight: 'bold', color: '#fff' },
+  role: { fontSize: dynamicFontSize(12, 13, 14), color: '#bee3f8', marginTop: verticalScale(4) },
   section: {
-    backgroundColor: '#fff', borderRadius: 16,
-    margin: 16, padding: 16,
+    backgroundColor: '#fff', borderRadius: moderateScale(16),
+    margin: scale(16), padding: scale(16),
     shadowColor: '#000', shadowOpacity: 0.04, shadowRadius: 6, elevation: 1
   },
   sectionHeaderRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 14,
+    marginBottom: verticalScale(14),
   },
   sectionTitle: {
-    fontSize: 15, fontWeight: 'bold',
+    fontSize: dynamicFontSize(13, 14, 15), fontWeight: 'bold',
     color: '#2d3748'
   },
   addChildButton: {
     backgroundColor: '#4a6fa5',
-    borderRadius: 999,
-    paddingHorizontal: 14,
-    paddingVertical: 8,
+    borderRadius: moderateScale(999),
+    paddingHorizontal: scale(14),
+    paddingVertical: verticalScale(8),
   },
-  addChildButtonText: { color: '#fff', fontSize: 12, fontWeight: '700' },
+  addChildButtonText: { color: '#fff', fontSize: moderateScale(12), fontWeight: '700' },
   infoRow: {
     flexDirection: 'row', alignItems: 'center',
-    paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: '#f7fafc'
+    paddingVertical: verticalScale(10), borderBottomWidth: 1, borderBottomColor: '#f7fafc'
   },
-  infoIcon: { fontSize: 20, marginRight: 12 },
-  infoLabel: { fontSize: 12, color: '#718096' },
-  infoValue: { fontSize: 15, color: '#2d3748', fontWeight: '500', marginTop: 2 },
+  infoIcon: { fontSize: moderateScale(20), marginRight: scale(12) },
+  infoLabel: { fontSize: dynamicFontSize(11, 12, 13), color: '#718096' },
+  infoValue: { fontSize: dynamicFontSize(13, 14, 15), color: '#2d3748', fontWeight: '500', marginTop: verticalScale(2) },
   studentRow: {
     flexDirection: 'row', alignItems: 'center',
-    paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: '#f7fafc'
+    paddingVertical: verticalScale(10), borderBottomWidth: 1, borderBottomColor: '#f7fafc'
   },
   studentAvatar: {
-    width: 40, height: 40, borderRadius: 20,
+    width: scale(40), height: verticalScale(40), borderRadius: moderateScale(20),
     backgroundColor: '#ebf4ff', alignItems: 'center',
-    justifyContent: 'center', marginRight: 12
+    justifyContent: 'center', marginRight: scale(12)
   },
-  studentAvatarText: { fontSize: 16, fontWeight: 'bold', color: '#4a6fa5' },
-  studentName: { fontSize: 15, fontWeight: '600', color: '#2d3748' },
-  studentSchool: { fontSize: 12, color: '#718096', marginTop: 2 },
-  emptyText: { color: '#a0aec0', fontSize: 14 },
+  studentAvatarText: { fontSize: moderateScale(16), fontWeight: 'bold', color: '#4a6fa5' },
+  studentName: { fontSize: dynamicFontSize(13, 14, 15), fontWeight: '600', color: '#2d3748' },
+  studentSchool: { fontSize: dynamicFontSize(10, 11, 12), color: '#718096', marginTop: verticalScale(2) },
+  emptyText: { color: '#a0aec0', fontSize: dynamicFontSize(12, 13, 14) },
   logoutButton: {
-    margin: 16, marginBottom: 40, backgroundColor: '#fff5f5',
-    borderRadius: 12, padding: 16, alignItems: 'center',
+    margin: scale(16), marginBottom: verticalScale(40), backgroundColor: '#fff5f5',
+    borderRadius: moderateScale(12), padding: scale(16), alignItems: 'center',
     borderWidth: 1, borderColor: '#fed7d7'
   },
-  logoutText: { color: '#e53e3e', fontWeight: '600', fontSize: 15 },
+  logoutText: { color: '#e53e3e', fontWeight: '600', fontSize: dynamicFontSize(13, 14, 15) },
 });

@@ -2,6 +2,7 @@ import {
   View, Text, StyleSheet, FlatList,
   TouchableOpacity, RefreshControl, ActivityIndicator
 } from 'react-native';
+import { moderateScale, scale, verticalScale, SCREEN_WIDTH, dynamicFontSize } from '../../utils/responsive';
 import { useState, useEffect, useCallback } from 'react';
 import { getNotifications, markAsRead, markAllRead } from '../../constants/api';
 
@@ -83,7 +84,7 @@ export default function Notifications() {
         data={notifications}
         keyExtractor={item => item.id.toString()}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
-        contentContainerStyle={{ padding: 16 }}
+        contentContainerStyle={{ padding: scale(16) }}
         ListEmptyComponent={
           <View style={styles.empty}>
             <Text style={styles.emptyEmoji}>🔔</Text>
@@ -115,33 +116,33 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#f8f9fa' },
   centered: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   header: {
-    backgroundColor: '#4a6fa5', paddingTop: 56,
-    paddingBottom: 16, paddingHorizontal: 20,
+    backgroundColor: '#4a6fa5', paddingTop: verticalScale(56),
+    paddingBottom: verticalScale(16), paddingHorizontal: scale(20),
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
   },
-  title: { color: '#fff', fontSize: 18, fontWeight: 'bold' },
-  markAll: { color: '#bee3f8', fontSize: 13 },
+  title: { color: '#fff', fontSize: dynamicFontSize(16, 17, 18), fontWeight: 'bold' },
+  markAll: { color: '#bee3f8', fontSize: dynamicFontSize(12, 13, 14) },
   unreadBanner: {
-    backgroundColor: '#ebf4ff', padding: 10,
+    backgroundColor: '#ebf4ff', padding: scale(10),
     alignItems: 'center', borderBottomWidth: 1, borderBottomColor: '#bee3f8'
   },
-  unreadText: { color: '#4a6fa5', fontSize: 13, fontWeight: '600' },
+  unreadText: { color: '#4a6fa5', fontSize: dynamicFontSize(12, 13, 14), fontWeight: '600' },
   card: {
-    backgroundColor: '#fff', borderRadius: 12, padding: 14,
-    marginBottom: 10, flexDirection: 'row', alignItems: 'center',
+    backgroundColor: '#fff', borderRadius: moderateScale(12), padding: scale(14),
+    marginBottom: verticalScale(10), flexDirection: 'row', alignItems: 'center',
     shadowColor: '#000', shadowOpacity: 0.04, shadowRadius: 6, elevation: 1
   },
   cardUnread: { borderLeftWidth: 3, borderLeftColor: '#4a6fa5' },
-  icon: { fontSize: 24, marginRight: 12 },
+  icon: { fontSize: moderateScale(24), marginRight: scale(12) },
   cardContent: { flex: 1 },
-  message: { fontSize: 14, color: '#2d3748', fontWeight: '500' },
-  time: { fontSize: 12, color: '#a0aec0', marginTop: 4 },
+  message: { fontSize: dynamicFontSize(13, 14, 15), color: '#2d3748', fontWeight: '500' },
+  time: { fontSize: dynamicFontSize(11, 12, 13), color: '#a0aec0', marginTop: verticalScale(4) },
   unreadDot: {
-    width: 8, height: 8, borderRadius: 4,
-    backgroundColor: '#4a6fa5', marginLeft: 8
+    width: scale(8), height: verticalScale(8), borderRadius: moderateScale(4),
+    backgroundColor: '#4a6fa5', marginLeft: scale(8)
   },
-  empty: { alignItems: 'center', paddingTop: 60 },
-  emptyEmoji: { fontSize: 48, marginBottom: 12 },
-  emptyText: { fontSize: 15, fontWeight: '600', color: '#2d3748' },
-  emptySub: { fontSize: 13, color: '#718096', marginTop: 6, textAlign: 'center' },
+  empty: { alignItems: 'center', paddingTop: verticalScale(60) },
+  emptyEmoji: { fontSize: moderateScale(48), marginBottom: verticalScale(12) },
+  emptyText: { fontSize: dynamicFontSize(14, 15, 16), fontWeight: '600', color: '#2d3748' },
+  emptySub: { fontSize: dynamicFontSize(12, 13, 14), color: '#718096', marginTop: verticalScale(6), textAlign: 'center' },
 });

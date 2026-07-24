@@ -8,6 +8,7 @@ const normalizeStops = (stops) => {
   return stops
     .filter((stop) => stop && stop.stop_name)
     .map((stop, index) => ({
+      id: stop.id || index + 1,
       stop_name: stop.stop_name,
       location: stop.location || null,
       latitude: stop.latitude === '' || stop.latitude === undefined ? null : Number(stop.latitude),

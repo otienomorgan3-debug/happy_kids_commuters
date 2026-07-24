@@ -13,6 +13,7 @@ const {
   getIncidents, updateIncidentStatus, getIncidentStats,
   getAllPaymentsAdmin, getPaymentStatsAdmin,
 } = require('../controllers/adminController');
+const { sendMessage, getConversation, getChatList, markMessagesRead } = require('../controllers/chatController');
 const { protect, restrictTo } = require('../middleware/authMiddleware');
 
 router.use(protect, restrictTo('admin', 'superadmin'));
@@ -65,6 +66,12 @@ router.delete('/schools/:id', deleteSchool);
 // Reports
 router.get('/reports/attendance', getAttendanceReport);
 router.get('/reports/trips', getTripReport);
+
+// Chat/Messaging
+router.post('/chat/send', sendMessage);
+router.get('/chat/list', getChatList);
+router.get('/chat/conversation/:other_user_id', getConversation);
+router.put('/chat/read/:other_user_id', markMessagesRead);
 
 // Payments
 router.get('/payments', getAllPaymentsAdmin);

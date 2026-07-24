@@ -1,10 +1,12 @@
 import {
   View, Text, StyleSheet, ScrollView,
-  TouchableOpacity, RefreshControl, Alert
+  TouchableOpacity, RefreshControl, Alert,
+  Modal, TextInput, KeyboardAvoidingView, Platform
 } from 'react-native';
+import { moderateScale, scale, verticalScale, SCREEN_WIDTH, dynamicFontSize } from '../../utils/responsive';
 import { useState, useEffect, useCallback } from 'react';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { getPaymentSummary, getPaymentHistory, initiateStkPush } from '../../constants/api';
+import { getPaymentData, initiateMpesaPayment } from '../../constants/api';
 
 export default function Payments() {
   const [summary, setSummary] = useState(null);
@@ -12,16 +14,21 @@ export default function Payments() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [processingPayment, setProcessingPayment] = useState(false);
+  const [error, setError] = useState(null);
+  const [showPhoneModal, setShowPhoneModal] = useState(false);
+  const [selectedStudent, setSelectedStudent] = useState(null);
+  const [phoneNumber, setPhoneNumber] = useState('');
   const fetchData = useCallback(async () => {
     try {
-      const [summaryRes, historyRes] = await Promise.all([
-        getPaymentSummary(),
-        getPaymentHistory()
-      ]);
-      setSummary(summaryRes.data.summary);
-      setHistory(historyRes.data.payments || []);
+      setError(null);
+      const res = await getPaymentData();
+      setSummary(res.data.data.summary);
+      setHistory(res.data.data.payments || []);
     } catch (err) {
       console.error('Failed to load payment data:', err);
+      setError(err.response?.data?.message || 'Failed to load payment data');
+      setSummary(null);
+      setHistory([]);
     } finally {
       setLoading(false);
     }
@@ -35,48 +42,54 @@ export default function Payments() {
     setRefreshing(false);
   }, [fetchData]);
 
-  const handleMakePayment = async (student) => {
-    const amount = student.outstanding_balance || student.transport_fee;
-    
+  const handleMakePayment = (student) => {
+    const amount = Number(student.outstanding_balance || student.transport_fee || 0);
+
     if (!amount || amount <= 0) {
       Alert.alert('Info', 'No outstanding balance for this student');
       return;
     }
 
-    Alert.alert(
-      'Confirm Payment',
-      `Pay KES ${amount.toFixed(2)} for ${student.name}?\n\nYou will receive an STK push on your phone.`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Pay Now',
-          onPress: async () => {
-            setProcessingPayment(true);
-            try {
-              const res = await initiateStkPush({
-                student_id: student.id,
-                amount: amount,
-                phone_number: '', // Will use default from profile
-                description: `Transport fee for ${student.name}`
-              });
-              
-              Alert.alert(
-                'STK Push Sent!',
-                res.data.message || 'Check your phone for M-Pesa prompt',
-                [{ text: 'OK', onPress: () => fetchData() }]
-              );
-            } catch (err) {
-              Alert.alert(
-                'Payment Failed',
-                err.response?.data?.message || 'Failed to initiate payment. Please try again.'
-              );
-            } finally {
-              setProcessingPayment(false);
-            }
-          }
-        }
-      ]
-    );
+    // Store selected student and show phone number modal
+    setSelectedStudent(student);
+    setPhoneNumber('');
+    setShowPhoneModal(true);
+  };
+
+  const handlePhoneSubmit = async () => {
+    if (!phoneNumber || phoneNumber.trim().length < 10) {
+      Alert.alert('Invalid', 'Please enter a valid phone number (e.g., 254712345678)');
+      return;
+    }
+
+    setShowPhoneModal(false);
+    const amount = Number(selectedStudent.outstanding_balance || selectedStudent.transport_fee || 0);
+    await processPayment(selectedStudent, amount, phoneNumber.trim());
+  };
+
+  const processPayment = async (student, amount, phoneNumber) => {
+    setProcessingPayment(true);
+    try {
+      const res = await initiateMpesaPayment({
+        student_id: student.id,
+        amount: amount,
+        phone_number: phoneNumber,
+        description: `Transport fee for ${student.name}`
+      });
+
+      Alert.alert(
+        'STK Push Sent! ✅',
+        res.data.message || 'Check your phone for M-Pesa prompt and enter your PIN.',
+        [{ text: 'OK', onPress: () => fetchData() }]
+      );
+    } catch (err) {
+      Alert.alert(
+        'Payment Failed ❌',
+        err.response?.data?.message || 'Failed to initiate payment. Please try again.'
+      );
+    } finally {
+      setProcessingPayment(false);
+    }
   };
 
   const getPaymentStatusColor = (status) => {
@@ -101,6 +114,17 @@ export default function Payments() {
     return (
       <View style={styles.centered}>
         <Text style={styles.loadingText}>Loading payment information...</Text>
+      </View>
+    );
+  }
+
+  if (error || !summary) {
+    return (
+      <View style={styles.centered}>
+        <Text style={styles.errorText}>{error || 'Unable to load payment data'}</Text>
+        <TouchableOpacity style={styles.retryButton} onPress={fetchData}>
+          <Text style={styles.retryButtonText}>Retry</Text>
+        </TouchableOpacity>
       </View>
     );
   }
@@ -189,6 +213,7 @@ export default function Payments() {
                   style={styles.payButton}
                   onPress={() => handleMakePayment(student)}
                   disabled={processingPayment}
+                  activeOpacity={0.8}
                 >
                   <MaterialCommunityIcons name="credit-card" size={20} color="#fff" />
                   <Text style={styles.payButtonText}>
@@ -268,6 +293,56 @@ export default function Payments() {
           </Text>
         </View>
       </View>
+
+      {/* Phone Number Modal */}
+      <Modal
+        visible={showPhoneModal}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setShowPhoneModal(false)}
+      >
+        <KeyboardAvoidingView
+          style={styles.modalOverlay}
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        >
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Enter Phone Number</Text>
+            <Text style={styles.modalSubtitle}>
+              {selectedStudent ? `Paying KES ${Number(selectedStudent.outstanding_balance || selectedStudent.transport_fee || 0).toFixed(2)} for ${selectedStudent.name}` : ''}
+            </Text>
+            
+            <TextInput
+              style={styles.phoneInput}
+              placeholder="e.g., 254712345678"
+              placeholderTextColor="#a0aec0"
+              value={phoneNumber}
+              onChangeText={setPhoneNumber}
+              keyboardType="phone-pad"
+              autoFocus
+              maxLength={13}
+            />
+
+            <View style={styles.modalButtons}>
+              <TouchableOpacity
+                style={[styles.modalButton, styles.cancelButton]}
+                onPress={() => setShowPhoneModal(false)}
+              >
+                <Text style={styles.cancelButtonText}>Cancel</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.modalButton, styles.payModalButton]}
+                onPress={handlePhoneSubmit}
+                disabled={processingPayment}
+              >
+                <Text style={styles.payModalButtonText}>
+                  {processingPayment ? 'Processing...' : 'Pay Now'}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
     </ScrollView>
   );
 }
@@ -275,31 +350,31 @@ export default function Payments() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#f8f9fa' },
   centered: {
-    flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32
+    flex: 1, alignItems: 'center', justifyContent: 'center', padding: scale(32)
   },
-  loadingText: { fontSize: 14, color: '#718096' },
+  loadingText: { fontSize: moderateScale(14), color: '#718096' },
   header: {
     backgroundColor: '#4a6fa5',
-    padding: 24,
-    paddingTop: 56,
-    paddingBottom: 32,
+    padding: scale(24),
+    paddingTop: verticalScale(56),
+    paddingBottom: verticalScale(32),
   },
   headerTitle: {
-    fontSize: 24, fontWeight: 'bold', color: '#fff', marginBottom: 4
+    fontSize: dynamicFontSize(20, 22, 24), fontWeight: 'bold', color: '#fff', marginBottom: verticalScale(4)
   },
   headerSubtitle: {
-    fontSize: 14, color: '#bee3f8'
+    fontSize: dynamicFontSize(12, 13, 14), color: '#bee3f8'
   },
   summaryContainer: {
     flexDirection: 'row',
-    marginHorizontal: 16,
-    marginTop: -20,
-    gap: 12,
+    marginHorizontal: scale(16),
+    marginTop: verticalScale(-20),
+    gap: verticalScale(12),
   },
   summaryCard: {
-    flex: 1,
-    borderRadius: 16,
-    padding: 20,
+    flex: 1, minWidth: SCREEN_WIDTH < 350 ? scale(140) : scale(160),
+    borderRadius: moderateScale(16),
+    padding: scale(20),
     alignItems: 'center',
     shadowColor: '#000',
     shadowOpacity: 0.1,
@@ -307,134 +382,142 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
   summaryAmount: {
-    fontSize: 18, fontWeight: 'bold', color: '#2d3748', marginTop: 8
+    fontSize: dynamicFontSize(16, 17, 18), fontWeight: 'bold', color: '#2d3748', marginTop: verticalScale(8)
   },
   summaryLabel: {
-    fontSize: 12, color: '#718096', marginTop: 4
+    fontSize: dynamicFontSize(11, 12, 13), color: '#718096', marginTop: verticalScale(4)
   },
   summaryCount: {
-    fontSize: 11, color: '#a0aec0', marginTop: 2
+    fontSize: dynamicFontSize(10, 11, 12), color: '#a0aec0', marginTop: verticalScale(2)
   },
   section: {
-    marginHorizontal: 16,
-    marginTop: 24,
+    marginHorizontal: scale(16),
+    marginTop: verticalScale(24),
   },
   sectionTitle: {
-    fontSize: 17, fontWeight: 'bold', color: '#2d3748', marginBottom: 12
+    fontSize: moderateScale(17), fontWeight: 'bold', color: '#2d3748', marginBottom: verticalScale(12)
   },
   studentCard: {
     backgroundColor: '#fff',
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 12,
+    borderRadius: moderateScale(16),
+    padding: scale(16),
+    marginBottom: verticalScale(12),
     shadowColor: '#000',
     shadowOpacity: 0.05,
     shadowRadius: 8,
     elevation: 2,
+    overflow: 'visible',
   },
   studentHeader: {
-    flexDirection: 'row', alignItems: 'center', marginBottom: 12
+    flexDirection: 'row', alignItems: 'center', marginBottom: verticalScale(12)
   },
   avatar: {
-    width: 48, height: 48, borderRadius: 24,
+    width: scale(48), height: verticalScale(48), borderRadius: moderateScale(24),
     backgroundColor: '#ebf4ff', alignItems: 'center', justifyContent: 'center'
   },
   avatarText: {
-    fontSize: 20, fontWeight: 'bold', color: '#4a6fa5'
+    fontSize: moderateScale(20), fontWeight: 'bold', color: '#4a6fa5'
   },
   studentInfo: {
-    marginLeft: 12, flex: 1
+    marginLeft: scale(12), flex: 1
   },
   studentName: {
-    fontSize: 16, fontWeight: 'bold', color: '#2d3748'
+    fontSize: dynamicFontSize(14, 15, 16), fontWeight: 'bold', color: '#2d3748'
   },
   schoolName: {
-    fontSize: 13, color: '#718096', marginTop: 2
+    fontSize: dynamicFontSize(11, 12, 13), color: '#718096', marginTop: verticalScale(2)
   },
   feeDetails: {
-    marginTop: 12, paddingTop: 12, borderTopWidth: 1, borderTopColor: '#e2e8f0'
+    marginTop: verticalScale(12), paddingTop: verticalScale(12), borderTopWidth: 1, borderTopColor: '#e2e8f0'
   },
   feeRow: {
-    flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6
+    flexDirection: 'row', justifyContent: 'space-between', marginBottom: verticalScale(6)
   },
   feeLabel: {
-    fontSize: 13, color: '#718096'
+    fontSize: dynamicFontSize(11, 12, 13), color: '#718096'
   },
   feeValue: {
-    fontSize: 13, fontWeight: '600', color: '#2d3748'
+    fontSize: dynamicFontSize(11, 12, 13), fontWeight: '600', color: '#2d3748'
   },
   payButton: {
     backgroundColor: '#2d6a4f',
-    borderRadius: 12,
-    paddingVertical: 12,
+    borderRadius: moderateScale(12),
+    paddingVertical: verticalScale(14),
+    paddingHorizontal: verticalScale(16),
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: 12,
-    gap: 8,
+    marginTop: verticalScale(12),
+    gap: verticalScale(8),
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    zIndex: 10,
   },
   payButtonText: {
-    color: '#fff', fontWeight: '600', fontSize: 14
+    color: '#fff', fontWeight: '700', fontSize: dynamicFontSize(13, 14, 15)
   },
   clearedBadge: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: '#d8f3dc',
-    borderRadius: 12,
-    paddingVertical: 10,
-    marginTop: 12,
-    gap: 6,
+    borderRadius: moderateScale(12),
+    paddingVertical: verticalScale(10),
+    marginTop: verticalScale(12),
+    gap: verticalScale(6),
   },
   clearedText: {
-    color: '#2d6a4f', fontWeight: '600', fontSize: 13
+    color: '#2d6a4f', fontWeight: '600', fontSize: dynamicFontSize(11, 12, 13)
   },
   historyCard: {
     backgroundColor: '#fff',
-    borderRadius: 12,
-    padding: 14,
-    marginBottom: 10,
+    borderRadius: moderateScale(12),
+    padding: scale(14),
+    marginBottom: verticalScale(10),
     borderLeftWidth: 4,
     borderLeftColor: '#4a6fa5',
   },
   historyHeader: {
-    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8
+    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: verticalScale(8)
   },
   statusBadge: {
-    flexDirection: 'row', alignItems: 'center', borderRadius: 8,
-    paddingHorizontal: 10, paddingVertical: 4, gap: 4
+    flexDirection: 'row', alignItems: 'center', borderRadius: moderateScale(8),
+    paddingHorizontal: scale(10), paddingVertical: verticalScale(4), gap: verticalScale(4)
   },
   statusIcon: {
-    fontSize: 12
+    fontSize: moderateScale(12)
   },
   statusText: {
-    fontSize: 11, fontWeight: '600', color: '#2d3748'
+    fontSize: dynamicFontSize(10, 11, 12), fontWeight: '600', color: '#2d3748'
   },
   historyDate: {
-    fontSize: 11, color: '#a0aec0'
+    fontSize: moderateScale(11), color: '#a0aec0'
   },
   historyDetails: {
-    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6
+    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: verticalScale(6)
   },
   historyStudent: {
-    fontSize: 14, fontWeight: '600', color: '#2d3748'
+    fontSize: dynamicFontSize(13, 14, 15), fontWeight: '600', color: '#2d3748'
   },
   historyAmount: {
-    fontSize: 15, fontWeight: 'bold', color: '#2d6a4f'
+    fontSize: dynamicFontSize(13, 14, 15), fontWeight: 'bold', color: '#2d6a4f'
   },
   receiptRow: {
-    flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 4
+    flexDirection: 'row', alignItems: 'center', gap: verticalScale(4), marginTop: verticalScale(4)
   },
   receiptText: {
-    fontSize: 11, color: '#718096', fontFamily: 'monospace'
+    fontSize: dynamicFontSize(10, 11, 12), color: '#718096', fontFamily: 'monospace'
   },
   transactionDate: {
-    fontSize: 11, color: '#a0aec0', marginTop: 4
+    fontSize: dynamicFontSize(10, 11, 12), color: '#a0aec0', marginTop: verticalScale(4)
   },
   emptyCard: {
     backgroundColor: '#fff',
-    borderRadius: 16,
-    padding: 32,
+    borderRadius: moderateScale(16),
+    padding: scale(32),
     alignItems: 'center',
     shadowColor: '#000',
     shadowOpacity: 0.04,
@@ -442,28 +525,108 @@ const styles = StyleSheet.create({
     elevation: 1,
   },
   emptyEmoji: {
-    fontSize: 48, marginBottom: 12
+    fontSize: moderateScale(48), marginBottom: verticalScale(12)
   },
   emptyText: {
-    fontSize: 14, color: '#718096', textAlign: 'center'
+    fontSize: moderateScale(14), color: '#718096', textAlign: 'center'
   },
   infoCard: {
     flexDirection: 'row',
     backgroundColor: '#ebf4ff',
-    borderRadius: 12,
-    padding: 16,
-    marginHorizontal: 16,
-    marginTop: 16,
-    marginBottom: 32,
-    gap: 12,
+    borderRadius: moderateScale(12),
+    padding: scale(16),
+    marginHorizontal: scale(16),
+    marginTop: verticalScale(16),
+    marginBottom: verticalScale(32),
+    gap: verticalScale(12),
   },
   infoContent: {
     flex: 1
   },
   infoTitle: {
-    fontSize: 14, fontWeight: '600', color: '#4a6fa5', marginBottom: 6
+    fontSize: dynamicFontSize(12, 13, 14), fontWeight: '600', color: '#4a6fa5', marginBottom: verticalScale(6)
   },
   infoText: {
-    fontSize: 12, color: '#718096', lineHeight: 18
+    fontSize: dynamicFontSize(11, 12, 13), color: '#718096', lineHeight: 18
+  },
+  errorText: {
+    fontSize: moderateScale(14), color: '#c53030', textAlign: 'center', marginBottom: verticalScale(16)
+  },
+  retryButton: {
+    backgroundColor: '#2d6a4f',
+    borderRadius: moderateScale(8),
+    paddingHorizontal: scale(24),
+    paddingVertical: verticalScale(12)
+  },
+  retryButtonText: {
+    color: '#fff', fontWeight: '600', fontSize: dynamicFontSize(12, 13, 14)
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: scale(20),
+  },
+  modalContent: {
+    backgroundColor: '#fff',
+    borderRadius: moderateScale(20),
+    padding: scale(24),
+    width: '100%',
+    maxWidth: scale(400),
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+  modalTitle: {
+    fontSize: dynamicFontSize(18, 19, 20),
+    fontWeight: 'bold',
+    color: '#2d3748',
+    marginBottom: verticalScale(8),
+  },
+  modalSubtitle: {
+    fontSize: dynamicFontSize(13, 14, 15),
+    color: '#718096',
+    marginBottom: verticalScale(20),
+  },
+  phoneInput: {
+    backgroundColor: '#f7fafc',
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+    borderRadius: moderateScale(12),
+    paddingHorizontal: scale(16),
+    paddingVertical: verticalScale(14),
+    fontSize: dynamicFontSize(16, 17, 18),
+    color: '#2d3748',
+    marginBottom: verticalScale(20),
+  },
+  modalButtons: {
+    flexDirection: 'row',
+    gap: verticalScale(12),
+  },
+  modalButton: {
+    flex: 1,
+    paddingVertical: verticalScale(14),
+    borderRadius: moderateScale(12),
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  cancelButton: {
+    backgroundColor: '#e2e8f0',
+  },
+  cancelButtonText: {
+    color: '#2d3748',
+    fontWeight: '600',
+    fontSize: dynamicFontSize(14, 15, 16),
+  },
+  payModalButton: {
+    backgroundColor: '#2d6a4f',
+  },
+  payModalButtonText: {
+    color: '#fff',
+    fontWeight: '700',
+    fontSize: dynamicFontSize(14, 15, 16),
   },
 });

@@ -16,7 +16,7 @@ const sendMessage = async (req, res) => {
     const result = await pool.query(
       `INSERT INTO chat_messages (sender_id, receiver_id, message, chat_type, trip_id)
        VALUES ($1, $2, $3, $4, $5) RETURNING *`,
-      [sender_id, receiver_id || null, message, chat_type || 'parent_driver', trip_id || null]
+      [sender_id, receiver_id ? parseInt(receiver_id) : null, message, chat_type || 'parent_driver', trip_id || null]
     );
 
     // Emit real-time notification if receiver is connected
@@ -61,7 +61,7 @@ const getConversation = async (req, res) => {
           OR (cm.sender_id = $2 AND cm.receiver_id = $1)
        ORDER BY cm.created_at ASC
        LIMIT 100`,
-      [user_id, other_user_id]
+      [user_id, parseInt(other_user_id)]
     );
 
     res.status(200).json({ messages: result.rows });
@@ -113,7 +113,7 @@ const markMessagesRead = async (req, res) => {
     await pool.query(
       `UPDATE chat_messages SET is_read = true
        WHERE sender_id = $1 AND receiver_id = $2 AND is_read = false`,
-      [other_user_id, user_id]
+      [parseInt(other_user_id), user_id]
     );
 
     res.status(200).json({ message: 'Messages marked as read' });

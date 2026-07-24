@@ -3,6 +3,7 @@ import {
   StyleSheet, Alert, ActivityIndicator,
   KeyboardAvoidingView, Platform, SafeAreaView
 } from 'react-native';
+import { moderateScale, scale, verticalScale } from '../../utils/responsive';
 import { useState } from 'react';
 import { useRouter } from 'expo-router';
 import { loginUser, setToken } from '../../constants/api';
