@@ -42,6 +42,19 @@ class TestNearestNeighborRoute:
         # First stop should be the original first stop (school/depot)
         assert result[0]['id'] == 1
 
+    def test_preserves_last_stop_when_requested(self):
+        """Should keep the final stop fixed when preserve_last_stop=True."""
+        stops = [
+            {'id': 1, 'name': 'Depot', 'latitude': -1.2921, 'longitude': 36.8219},
+            {'id': 2, 'name': 'Stop A', 'latitude': -1.3000, 'longitude': 36.8300},
+            {'id': 3, 'name': 'School', 'latitude': -1.2800, 'longitude': 36.8100},
+        ]
+        result = nearest_neighbor_route(stops, preserve_last_stop=True)
+
+        assert len(result) == 3
+        assert result[0]['id'] == 1
+        assert result[-1]['id'] == 3
+
     def test_five_stops_returns_all_stops(self):
         """Should not lose any stops during optimization."""
         stops = [

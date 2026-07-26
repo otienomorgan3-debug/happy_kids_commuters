@@ -89,8 +89,11 @@ export default function MapScreen() {
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
-    await fetchBusData();
-    setRefreshing(false);
+    try {
+      await fetchBusData();
+    } finally {
+      setRefreshing(false);
+    }
   }, [fetchBusData]);
 
   const buses = Object.values(busLocations);

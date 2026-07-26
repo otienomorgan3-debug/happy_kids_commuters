@@ -8,7 +8,7 @@ import * as Location from 'expo-location';
 import { io } from 'socket.io-client';
 import { moderateScale, scale, verticalScale, SCREEN_WIDTH } from '../../utils/responsive';
 import {
-  getMe, startTrip, endTrip, removeToken, SOCKET_URL,
+  getMe, startTrip, endTrip, removeToken, SOCKET_URL, updateMyDriverAvailability,
   getRouteById, getMyAssignment, getRoutes
 } from '../../constants/api';
 
@@ -24,10 +24,15 @@ export default function DriverHome() {
   const [selectedRouteId, setSelectedRouteId] = useState(null);
   const [routeLoading, setRouteLoading] = useState(false);
   const [socketConnected, setSocketConnected] = useState(false);
+  const [endingTrip, setEndingTrip] = useState(false);
+  const [startingTrip, setStartingTrip] = useState(false);
+  const [availabilitySaving, setAvailabilitySaving] = useState(false);
   const socketRef = useRef(null);
   const pendingJoinBusIdRef = useRef(null);
   const locationRef = useRef(null);
   const router = useRouter();
+  const tripIsActive = trip?.status === 'active';
+  const tripPendingReassignment = trip?.status === 'reassignment_pending';
 
   const fetchUser = useCallback(async () => {
     try {
@@ -61,7 +66,12 @@ export default function DriverHome() {
       const assignmentData = assignmentRes.data?.assignment || null;
       setAssignment(assignmentData);
       if (assignmentData?.trip_id) {
-        setTrip({ id: assignmentData.trip_id, bus_id: assignmentData.bus_id, route_id: assignmentData.route_id });
+        setTrip({
+          id: assignmentData.trip_id,
+          bus_id: assignmentData.bus_id,
+          route_id: assignmentData.route_id,
+          status: assignmentData.trip_status
+        });
       } else {
         setTrip(null);
       }
@@ -122,15 +132,19 @@ export default function DriverHome() {
   };
 
   const handleStartTrip = async () => {
+    if (startingTrip || trip) return;
+    setStartingTrip(true);
     const routeIdToStart = assignment?.route_id || selectedRouteId;
 
     if (!assignment?.bus_id) {
       Alert.alert('No bus assigned', 'Your driver profile does not have a bus assigned. Contact admin.');
+      setStartingTrip(false);
       return;
     }
 
     if (!routeIdToStart) {
       Alert.alert('No route selected', 'Choose a route before starting the trip.');
+      setStartingTrip(false);
       return;
     }
 
@@ -151,8 +165,11 @@ export default function DriverHome() {
       }
 
       Alert.alert('Trip Started', 'GPS broadcasting has started. Parents can now track the bus.');
+      router.push('/(driver)/route-guidance');
     } catch (err) {
       Alert.alert('Error', err.response?.data?.message || 'Failed to start trip');
+    } finally {
+      setStartingTrip(false);
     }
   };
 
@@ -190,6 +207,7 @@ export default function DriverHome() {
         text: 'End Trip', style: 'destructive',
         onPress: async () => {
           try {
+            setEndingTrip(true);
             await endTrip({ trip_id: trip.id });
             if (locationRef.current) {
               locationRef.current.remove();
@@ -199,13 +217,33 @@ export default function DriverHome() {
             setTrip(null);
             setLocation(null);
             setActiveRoute(null);
+            await fetchAssignment();
             Alert.alert('Trip Ended', 'Trip completed successfully');
           } catch (err) {
             Alert.alert('Error', err.response?.data?.message || 'Failed to end trip');
+          } finally {
+            setEndingTrip(false);
           }
         }
       }
     ]);
+  };
+
+  const handleAvailabilityChange = async (status, reason = null) => {
+    if (availabilitySaving) return;
+    setAvailabilitySaving(true);
+    try {
+      await updateMyDriverAvailability({
+        availability_status: status,
+        reason,
+      });
+      await fetchAssignment();
+      Alert.alert('Status updated', `You are now marked as ${status.replace('_', ' ')}`);
+    } catch (err) {
+      Alert.alert('Error', err.response?.data?.message || 'Failed to update availability');
+    } finally {
+      setAvailabilitySaving(false);
+    }
   };
 
   const handleLogout = () => {
@@ -223,9 +261,12 @@ export default function DriverHome() {
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
-    await fetchUser();
-    await fetchAssignment();
-    setRefreshing(false);
+    try {
+      await fetchUser();
+      await fetchAssignment();
+    } finally {
+      setRefreshing(false);
+    }
   }, [fetchUser, fetchAssignment]);
 
   return (
@@ -243,21 +284,101 @@ export default function DriverHome() {
       </View>
 
       <View style={styles.section}>
+        <Text style={styles.sectionTitle}>Availability</Text>
+        <View style={styles.availabilityCard}>
+          <View style={styles.gpsRow}>
+            <View style={[styles.gpsDot, { backgroundColor: assignment?.availability_status === 'available' ? '#68d391' : '#fc8181' }]} />
+            <Text style={styles.gpsStatus}>
+              {`Availability: ${assignment?.availability_status || 'available'} • Dispatch: ${assignment?.dispatch_status || 'idle'}`}
+            </Text>
+          </View>
+          {assignment?.availability_reason ? (
+            <Text style={styles.availabilityNote}>
+              Reason: {assignment.availability_reason}
+            </Text>
+          ) : null}
+          <View style={styles.availabilityActions}>
+            {assignment?.availability_status !== 'available' ? (
+              <TouchableOpacity
+                style={[styles.availabilityButton, styles.availabilityButtonSuccess, availabilitySaving && styles.buttonDisabled]}
+                onPress={() => handleAvailabilityChange('available', 'Made available from driver app')}
+                disabled={availabilitySaving}
+              >
+                <Text style={styles.availabilityButtonText}>Mark Available</Text>
+              </TouchableOpacity>
+            ) : (
+              <>
+                <TouchableOpacity
+                  style={[styles.availabilityButton, styles.availabilityButtonWarning, availabilitySaving && styles.buttonDisabled]}
+                  onPress={() => handleAvailabilityChange('unavailable', 'Marked unavailable from driver app')}
+                  disabled={availabilitySaving}
+                >
+                  <Text style={styles.availabilityButtonText}>Unavailable</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.availabilityButton, styles.availabilityButtonWarning, availabilitySaving && styles.buttonDisabled]}
+                  onPress={() => handleAvailabilityChange('on_leave', 'Marked on leave from driver app')}
+                  disabled={availabilitySaving}
+                >
+                  <Text style={styles.availabilityButtonText}>On Leave</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.availabilityButton, styles.availabilityButtonWarning, availabilitySaving && styles.buttonDisabled]}
+                  onPress={() => handleAvailabilityChange('sick', 'Marked sick from driver app')}
+                  disabled={availabilitySaving}
+                >
+                  <Text style={styles.availabilityButtonText}>Sick</Text>
+                </TouchableOpacity>
+              </>
+            )}
+          </View>
+          {assignment?.dispatch_status === 'reassignment_pending' && (
+            <Text style={styles.availabilityWarning}>
+              Your trip is awaiting reassignment. An admin must select a replacement driver.
+            </Text>
+          )}
+        </View>
+      </View>
+
+      <View style={styles.section}>
         <Text style={styles.sectionTitle}>Trip Status</Text>
         <View style={[styles.statusCard, trip ? styles.statusActive : styles.statusIdle]}>
           <Text style={styles.statusEmoji}>{trip ? '🟢' : '⭕'}</Text>
-          <Text style={styles.statusTitle}>{trip ? 'Trip Active' : 'No Active Trip'}</Text>
+          <Text style={styles.statusTitle}>
+            {tripIsActive ? 'Trip Active' : tripPendingReassignment ? 'Trip Pending Reassignment' : 'No Active Trip'}
+          </Text>
           <Text style={styles.statusSub}>
-            {trip ? `Trip ID: ${trip.id}` : 'Select a route and start the trip'}
+            {trip
+              ? `Trip ID: ${trip.id}${trip.status ? ` • ${trip.status}` : ''}`
+              : assignment?.dispatch_status === 'reassignment_pending'
+                ? 'Waiting for reassignment'
+                : 'Select a route and start the trip'}
           </Text>
         </View>
         {!trip ? (
-          <TouchableOpacity style={styles.startButton} onPress={handleStartTrip}>
-            <Text style={styles.startButtonText}>▶ Start Trip</Text>
+          <TouchableOpacity
+            style={[
+              styles.startButton,
+              (startingTrip || assignment?.availability_status !== 'available') && styles.buttonDisabled
+            ]}
+            onPress={handleStartTrip}
+            disabled={startingTrip || assignment?.availability_status !== 'available'}
+          >
+            <Text style={styles.startButtonText}>
+              {startingTrip
+                ? 'Starting Trip…'
+                : assignment?.availability_status !== 'available'
+                  ? 'Unavailable'
+                  : '▶ Start Trip'}
+            </Text>
+          </TouchableOpacity>
+        ) : tripIsActive ? (
+          <TouchableOpacity style={[styles.endButton, endingTrip && styles.buttonDisabled]} onPress={handleEndTrip} disabled={endingTrip}>
+            <Text style={styles.endButtonText}>{endingTrip ? 'Ending Trip…' : '⏹ End Trip'}</Text>
           </TouchableOpacity>
         ) : (
-          <TouchableOpacity style={styles.endButton} onPress={handleEndTrip}>
-            <Text style={styles.endButtonText}>⏹ End Trip</Text>
+          <TouchableOpacity style={[styles.endButton, styles.buttonDisabled]} disabled>
+            <Text style={styles.endButtonText}>Awaiting Reassignment</Text>
           </TouchableOpacity>
         )}
       </View>
@@ -371,6 +492,38 @@ const styles = StyleSheet.create({
   statusEmoji: { fontSize: moderateScale(40), marginBottom: verticalScale(8) },
   statusTitle: { fontSize: moderateScale(18), fontWeight: 'bold', color: '#2d3748' },
   statusSub: { fontSize: moderateScale(13), color: '#718096', marginTop: verticalScale(4), textAlign: 'center' },
+  availabilityCard: {
+    backgroundColor: '#fff',
+    borderRadius: verticalScale(16),
+    padding: verticalScale(16),
+    borderWidth: 1,
+    borderColor: '#e2e8f0'
+  },
+  availabilityNote: {
+    marginTop: verticalScale(10),
+    fontSize: moderateScale(12),
+    color: '#4a5568'
+  },
+  availabilityWarning: {
+    marginTop: verticalScale(10),
+    fontSize: moderateScale(12),
+    color: '#c53030',
+    fontWeight: '600'
+  },
+  availabilityActions: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: scale(8),
+    marginTop: verticalScale(12)
+  },
+  availabilityButton: {
+    borderRadius: verticalScale(10),
+    paddingVertical: verticalScale(10),
+    paddingHorizontal: scale(12)
+  },
+  availabilityButtonSuccess: { backgroundColor: '#2d6a4f' },
+  availabilityButtonWarning: { backgroundColor: '#b7791f' },
+  availabilityButtonText: { color: '#fff', fontSize: moderateScale(12), fontWeight: '700' },
   startButton: {
     backgroundColor: '#2d6a4f', borderRadius: verticalScale(12),
     paddingVertical: verticalScale(14), alignItems: 'center'
@@ -381,6 +534,7 @@ const styles = StyleSheet.create({
     paddingVertical: verticalScale(14), alignItems: 'center'
   },
   endButtonText: { color: '#fff', fontSize: moderateScale(16), fontWeight: '600' },
+  buttonDisabled: { opacity: 0.65 },
   routeCard: {
     backgroundColor: '#fff',
     borderRadius: verticalScale(16),

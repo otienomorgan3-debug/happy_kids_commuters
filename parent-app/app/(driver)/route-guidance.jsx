@@ -3,10 +3,11 @@ import {
   ActivityIndicator, RefreshControl
 } from 'react-native';
 import { moderateScale, scale, verticalScale, SCREEN_WIDTH } from '../../utils/responsive';
-import { useState, useEffect, useCallback } from 'react';
-import { useRouter } from 'expo-router';
+import { useState, useCallback } from 'react';
+import { useFocusEffect, useRouter } from 'expo-router';
 import * as Location from 'expo-location';
 import { getMe, getAssignedStudents, getRouteById, getRouteEta } from '../../constants/api';
+import RouteGuidanceMap from '../../components/RouteGuidanceMap';
 
 export default function RouteGuidance() {
   const [user, setUser] = useState(null);
@@ -42,9 +43,9 @@ export default function RouteGuidance() {
     }
   }, []);
 
-  useEffect(() => {
+  useFocusEffect(useCallback(() => {
     loadData();
-  }, [loadData]);
+  }, [loadData]));
 
   useEffect(() => {
     const loadLocationAndEta = async () => {
@@ -67,8 +68,11 @@ export default function RouteGuidance() {
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
-    await loadData();
-    setRefreshing(false);
+    try {
+      await loadData();
+    } finally {
+      setRefreshing(false);
+    }
   }, [loadData]);
 
   const getStopStatus = (stopOrder) => {
@@ -124,12 +128,15 @@ export default function RouteGuidance() {
 
           {/* Route Overview */}
           {route && (
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>{route.route_name}</Text>
-              <Text style={styles.routeMeta}>
-                Estimated time: {route.estimated_time || '—'} min · {route.stops?.length || 0} stops
-              </Text>
-            </View>
+            <>
+              <View style={styles.section}>
+                <Text style={styles.sectionTitle}>{route.route_name}</Text>
+                <Text style={styles.routeMeta}>
+                  Estimated time: {route.estimated_time || '—'} min · {route.stops?.length || 0} stops
+                </Text>
+              </View>
+              <RouteGuidanceMap route={route} currentLocation={currentLocation} />
+            </>
           )}
 
           {/* Students Summary */}

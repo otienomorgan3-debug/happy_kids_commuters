@@ -63,6 +63,7 @@ export const startTrip = (data) => API.post('/attendance/trip/start', data);
 export const endTrip = (data) => API.post('/attendance/trip/end', data);
 export const getTripAttendance = (tripId) => API.get(`/attendance/trip/${tripId}`);
 export const getMyAssignment = () => API.get('/attendance/driver/assignment');
+export const updateMyDriverAvailability = (data) => API.put('/attendance/driver/availability', data);
 
 // Tracking
 export const getBusLocation = (bus_id) => API.get(`/tracking/bus/${bus_id}`);
@@ -93,16 +94,19 @@ export const getTransportHistory = () => API.get('/parent/transport-history');
 
 // Schedule preview
 export const getSchedulePreview = () => API.get('/parent/schedule-preview');
+export const getParentTripStatus = () => API.get('/parent/trip-status');
 
 // Chat (Parent)
 export const sendChatMessage = (data) => API.post('/parent/chat/send', data);
 export const getChatList = () => API.get('/parent/chat/list');
+export const getChatContacts = () => API.get('/parent/chat/contacts');
 export const getConversation = (otherUserId) => API.get(`/parent/chat/conversation/${otherUserId}`);
 export const markChatRead = (otherUserId) => API.put(`/parent/chat/read/${otherUserId}`);
 
 // Chat (Driver)
 export const sendDriverChatMessage = (data) => API.post('/attendance/chat/send', data);
 export const getDriverChatList = () => API.get('/attendance/chat/list');
+export const getDriverChatContacts = () => API.get('/attendance/chat/contacts');
 export const getDriverConversation = (otherUserId) => API.get(`/attendance/chat/conversation/${otherUserId}`);
 export const markDriverChatRead = (otherUserId) => API.put(`/attendance/chat/read/${otherUserId}`);
 

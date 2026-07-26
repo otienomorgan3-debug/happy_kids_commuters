@@ -47,6 +47,10 @@ export const getAllDrivers = () => API.get('/admin/drivers');
 export const addDriver = (data) => API.post('/admin/drivers', data);
 export const assignDriver = (data) => API.post('/admin/drivers/assign', data);
 export const unassignDriver = (id) => API.put(`/admin/drivers/${id}/unassign`);
+export const getAvailableDrivers = (busId = null) => API.get('/admin/drivers/available', { params: busId ? { bus_id: busId } : undefined });
+export const getDriverAvailabilityHistory = (params) => API.get('/admin/drivers/availability-history', { params });
+export const updateDriverAvailability = (driverId, data) => API.patch(`/admin/drivers/${driverId}/availability`, data);
+export const reassignTrip = (tripId, data) => API.post(`/admin/trips/${tripId}/reassign`, data);
 
 // Students
 export const getAllStudents = () => API.get('/students/all');
