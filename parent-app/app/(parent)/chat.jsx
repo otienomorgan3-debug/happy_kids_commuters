@@ -406,6 +406,16 @@ export default function ChatScreen() {
                     styles.messageBubble,
                     isSentByMe ? styles.sentBubble : styles.receivedBubble
                   ]}>
+                    <View style={styles.messageSenderRow}>
+                      <View style={styles.messageAvatar}>
+                        <Text style={styles.messageAvatarText}>
+                          {isSentByMe ? 'Me' : (otherUser?.name?.charAt(0)?.toUpperCase() || '?')}
+                        </Text>
+                      </View>
+                      <Text style={styles.messageSenderName}>
+                        {isSentByMe ? 'You' : (otherUser?.name || 'Unknown')}
+                      </Text>
+                    </View>
                     <Text style={[
                       styles.messageText,
                       isSentByMe ? styles.sentText : styles.receivedText
@@ -532,10 +542,20 @@ const styles = StyleSheet.create({
   messageBubble: {
     maxWidth: SCREEN_WIDTH < 350 ? '85%' : '80%', borderRadius: moderateScale(16),
     paddingHorizontal: scale(14), paddingVertical: verticalScale(10),
-    marginBottom: verticalScale(10),
+    marginBottom: verticalScale(2),
   },
   sentBubble: { backgroundColor: '#4a6fa5', alignSelf: 'flex-end', borderBottomRightRadius: 4 },
   receivedBubble: { backgroundColor: '#e2e8f0', alignSelf: 'flex-start', borderBottomLeftRadius: 4 },
+  messageSenderRow: {
+    flexDirection: 'row', alignItems: 'center', marginBottom: verticalScale(4), marginLeft: scale(2),
+  },
+  messageAvatar: {
+    width: verticalScale(24), height: verticalScale(24), borderRadius: verticalScale(12),
+    backgroundColor: '#ebf4ff', alignItems: 'center', justifyContent: 'center',
+    marginRight: scale(6),
+  },
+  messageAvatarText: { fontSize: moderateScale(11), fontWeight: '700', color: '#4a6fa5' },
+  messageSenderName: { fontSize: dynamicFontSize(10, 11, 12), fontWeight: '700', color: '#4a6fa5' },
   messageText: { fontSize: dynamicFontSize(13, 14, 15), lineHeight: 20 },
   sentText: { color: '#fff' },
   receivedText: { color: '#2d3748' },
@@ -556,6 +576,7 @@ const styles = StyleSheet.create({
   inputBar: {
     flexDirection: 'row', alignItems: 'center',
     paddingHorizontal: scale(12), paddingVertical: verticalScale(8),
+    paddingBottom: verticalScale(Platform.OS === 'android' ? 28 : 8),
     backgroundColor: '#fff', borderTopWidth: 1, borderTopColor: '#e2e8f0',
   },
   input: {

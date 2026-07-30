@@ -19,6 +19,7 @@ export default function Drivers() {
     const [selectedReplacementDriver, setSelectedReplacementDriver] = useState('');
     const [availabilityReason, setAvailabilityReason] = useState('');
     const [availabilityUntil, setAvailabilityUntil] = useState('');
+    const [doNotReassign, setDoNotReassign] = useState(false);
     const [reassignReason, setReassignReason] = useState('');
     const [form, setForm] = useState({
         name: '',
@@ -83,11 +84,13 @@ export default function Drivers() {
                 availability_status: availabilityEditor.status,
                 reason: availabilityReason || null,
                 availability_until: availabilityUntil || null,
+                do_not_reassign: doNotReassign || undefined,
             });
             toast.success('Driver availability updated');
             setAvailabilityEditor(null);
             setAvailabilityReason('');
             setAvailabilityUntil('');
+            setDoNotReassign(false);
             fetchData();
         } catch (err) {
             toast.error(err.response?.data?.message || 'Failed to update availability');
@@ -247,6 +250,7 @@ export default function Drivers() {
                                 setAvailabilityEditor(null);
                                 setAvailabilityReason('');
                                 setAvailabilityUntil('');
+                                setDoNotReassign(false);
                             }}
                             className="text-sm text-gray-500 hover:text-gray-700"
                         >
@@ -289,6 +293,18 @@ export default function Drivers() {
                                 className="w-full border border-gray-300 rounded-lg px-4 py-2 text-sm"
                                 placeholder="Optional reason"
                             />
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <input
+                                type="checkbox"
+                                id="doNotReassign"
+                                checked={doNotReassign}
+                                onChange={e => setDoNotReassign(e.target.checked)}
+                                className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                            />
+                            <label htmlFor="doNotReassign" className="text-sm font-medium text-gray-700">
+                                Do not reassign this trip
+                            </label>
                         </div>
                     </div>
                     <button
@@ -396,30 +412,35 @@ export default function Drivers() {
                                     </td>
                                     <td className="px-6 py-4 text-xs text-gray-600">
                                         {driver.active_trip_id ? (
-                                            <div className="space-y-1">
-                                                <div className="font-medium text-gray-800">Trip #{driver.active_trip_id}</div>
-                                                <div>{driver.active_route_name || 'Active route'}</div>
-                                                <div className="text-gray-500">{driver.active_trip_status}</div>
-                                                {driver.active_trip_status === 'reassignment_pending' && (
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => {
-                                                            setReassignEditor({
-                                                                tripId: driver.active_trip_id,
-                                                                busId: driver.active_trip_bus_id || driver.bus_id,
-                                                                busPlate: driver.assigned_bus,
-                                                                routeName: driver.active_route_name,
-                                                                currentDriverId: driver.id,
-                                                            });
-                                                            setSelectedReplacementDriver('');
-                                                            setReassignReason(`Replacement for ${driver.name}`);
-                                                        }}
-                                                        className="text-xs text-blue-600 hover:text-blue-800 font-medium"
-                                                    >
-                                                        Reassign Trip
-                                                    </button>
-                                                )}
-                                            </div>
+                                             <div className="space-y-1">
+                                                 <div className="font-medium text-gray-800">Trip #{driver.active_trip_id}</div>
+                                                 <div>{driver.active_route_name || 'Active route'}</div>
+                                                 <div className="text-gray-500">{driver.active_trip_status}</div>
+                                                 {driver.active_trip_do_not_reassign && (
+                                                     <span className="inline-flex px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-700">
+                                                         Do Not Reassign
+                                                     </span>
+                                                 )}
+                                                 {driver.active_trip_status === 'reassignment_pending' && !driver.active_trip_do_not_reassign && (
+                                                     <button
+                                                         type="button"
+                                                         onClick={() => {
+                                                             setReassignEditor({
+                                                                 tripId: driver.active_trip_id,
+                                                                 busId: driver.active_trip_bus_id || driver.bus_id,
+                                                                 busPlate: driver.assigned_bus,
+                                                                 routeName: driver.active_route_name,
+                                                                 currentDriverId: driver.id,
+                                                             });
+                                                             setSelectedReplacementDriver('');
+                                                             setReassignReason(`Replacement for ${driver.name}`);
+                                                         }}
+                                                         className="text-xs text-blue-600 hover:text-blue-800 font-medium"
+                                                     >
+                                                         Reassign Trip
+                                                     </button>
+                                                 )}
+                                             </div>
                                         ) : (
                                             <span className="text-gray-400">No active trip</span>
                                         )}

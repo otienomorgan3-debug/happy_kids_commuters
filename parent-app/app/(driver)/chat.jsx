@@ -303,11 +303,21 @@ export default function DriverChatScreen() {
                   </View>
                 )}
                 <View style={[styles.messageRow, isSentByMe ? styles.sent : styles.received]}>
-                  <View style={[styles.messageBubble, isSentByMe ? styles.sentBubble : styles.receivedBubble]}>
-                    <Text style={[styles.messageText, isSentByMe ? styles.sentText : styles.receivedText]}>
-                      {item.message}
+                <View style={[styles.messageBubble, isSentByMe ? styles.sentBubble : styles.receivedBubble]}>
+                  <View style={styles.messageSenderRow}>
+                    <View style={styles.messageAvatar}>
+                      <Text style={styles.messageAvatarText}>
+                        {isSentByMe ? 'Me' : (item.sender_name?.charAt(0)?.toUpperCase() || otherUser?.name?.charAt(0)?.toUpperCase() || '?')}
+                      </Text>
+                    </View>
+                    <Text style={styles.messageSenderName}>
+                      {isSentByMe ? 'You' : (item.sender_name || otherUser?.name || 'Unknown')}
                     </Text>
-                    <View style={styles.messageMeta}>
+                  </View>
+                  <Text style={[styles.messageText, isSentByMe ? styles.sentText : styles.receivedText]}>
+                    {item.message}
+                  </Text>
+                  <View style={styles.messageMeta}>
                       <Text style={styles.messageTime}>{formatTime(item.created_at)}</Text>
                       {isSentByMe && (
                         <Text style={[styles.readStatus, item.is_read ? styles.read : styles.unread]}>
@@ -540,10 +550,25 @@ const styles = StyleSheet.create({
   receivedBubble: {
     backgroundColor: '#e2e8f0',
   },
+  messageRow: {
+    paddingHorizontal: scale(16),
+    paddingVertical: verticalScale(4),
+    flexDirection: 'row',
+  },
   messageText: {
     fontSize: moderateScale(14),
     marginBottom: verticalScale(2),
   },
+  messageSenderRow: {
+    flexDirection: 'row', alignItems: 'center', marginBottom: verticalScale(4),
+  },
+  messageAvatar: {
+    width: verticalScale(22), height: verticalScale(22), borderRadius: verticalScale(11),
+    backgroundColor: '#ebf4ff', alignItems: 'center', justifyContent: 'center',
+    marginRight: scale(6),
+  },
+  messageAvatarText: { fontSize: moderateScale(10), fontWeight: '700', color: '#2d6a4f' },
+  messageSenderName: { fontSize: moderateScale(10), fontWeight: '700', color: '#2d6a4f' },
   sentText: {
     color: '#fff',
   },
@@ -567,7 +592,9 @@ const styles = StyleSheet.create({
   typingText: { fontSize: moderateScale(11), color: '#718096', fontStyle: 'italic' },
   inputContainer: {
     flexDirection: 'row',
-    padding: scale(12),
+    paddingHorizontal: scale(12),
+    paddingVertical: verticalScale(8),
+    paddingBottom: verticalScale(Platform.OS === 'android' ? 28 : 8),
     backgroundColor: '#fff',
     borderTopWidth: 1,
     borderTopColor: '#e2e8f0',

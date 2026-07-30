@@ -104,6 +104,7 @@ CREATE TABLE IF NOT EXISTS trips (
     end_time TIMESTAMP,
     status VARCHAR(30) DEFAULT 'pending' CHECK (status IN ('pending', 'active', 'completed', 'delayed', 'reassignment_pending', 'cancelled')),
     status_reason TEXT,
+    do_not_reassign BOOLEAN DEFAULT FALSE,
     updated_at TIMESTAMP DEFAULT NOW()
 );
 
@@ -379,6 +380,9 @@ UPDATE users SET is_active = TRUE WHERE is_active IS NULL;
 ALTER TABLE buses ADD COLUMN IF NOT EXISTS fuel_consumption_rate DECIMAL(5,2) DEFAULT 10.00;
 ALTER TABLE buses ADD COLUMN IF NOT EXISTS fuel_price_per_liter DECIMAL(10,2) DEFAULT 175.00;
 ALTER TABLE buses ADD COLUMN IF NOT EXISTS last_fuel_check DATE DEFAULT CURRENT_DATE;
+ALTER TABLE chat_messages ADD COLUMN IF NOT EXISTS sender_name VARCHAR(100);
+ALTER TABLE chat_messages ADD COLUMN IF NOT EXISTS sender_role VARCHAR(20);
+
 
 -- ============================================================
 -- COMMENTS

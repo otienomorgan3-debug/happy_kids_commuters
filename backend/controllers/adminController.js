@@ -486,6 +486,7 @@ const getAllDrivers = async (req, res) => {
               b.plate_number as assigned_bus,
               active_trip.id as active_trip_id,
               active_trip.status as active_trip_status,
+              active_trip.do_not_reassign as active_trip_do_not_reassign,
               active_trip.route_id as active_route_id,
               active_trip.bus_id as active_trip_bus_id,
               active_trip.route_name as active_route_name
@@ -493,11 +494,11 @@ const getAllDrivers = async (req, res) => {
        JOIN users u ON d.user_id = u.id
        LEFT JOIN buses b ON d.bus_id = b.id
        LEFT JOIN LATERAL (
-         SELECT t.id, t.status, t.route_id, t.bus_id, r.route_name
+         SELECT t.id, t.status, t.do_not_reassign, t.route_id, t.bus_id, r.route_name
            FROM trips t
            LEFT JOIN routes r ON r.id = t.route_id
           WHERE t.driver_id = d.id
-            AND t.status IN ('active', 'reassignment_pending')
+            AND t.status IN ('active', 'reassignment_pending', 'cancelled')
           ORDER BY t.start_time DESC NULLS LAST, t.id DESC
           LIMIT 1
        ) active_trip ON TRUE

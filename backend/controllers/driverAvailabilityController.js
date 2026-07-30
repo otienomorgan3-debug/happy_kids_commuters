@@ -90,6 +90,7 @@ const updateDriverAvailability = async (req, res) => {
   const driverIdParam = req.params.driver_id || req.body.driver_id;
   const targetUserId = req.user.role === 'driver' ? req.user.id : null;
   const source = req.user.role === 'driver' ? 'driver' : 'admin';
+  const doNotReassign = req.user.role !== 'driver' && req.body.do_not_reassign === true;
 
   if (!AVAILABILITY_STATUSES.includes(requestedStatus)) {
     return res.status(400).json({ message: 'Invalid availability status' });
@@ -141,14 +142,39 @@ const updateDriverAvailability = async (req, res) => {
       );
       const activeTrip = activeTripRes.rows[0] || null;
 
-      if (requestedStatus === 'available' && activeTrip) {
-        await client.query('ROLLBACK');
-        return res.status(409).json({ message: 'End the active trip before marking the driver available again' });
-      }
+       if (requestedStatus === 'available' && activeTrip) {
+         await client.query('ROLLBACK');
+         return res.status(409).json({ message: 'End the active trip before marking the driver available again' });
+       }
 
-      const dispatchStatus = activeTrip && requestedStatus !== 'available' ? 'reassignment_pending' : 'idle';
-      const isDispatchable = requestedStatus === 'available';
-      const nextAvailableAt = requestedStatus === 'available' ? new Date() : (availabilityUntil || null);
+       const pendingTripRes = requestedStatus === 'available'
+         ? await client.query(
+             `SELECT t.id, t.route_id, trl.new_driver_id
+                FROM trips t
+                JOIN trip_reassignment_log trl ON trl.trip_id = t.id
+               WHERE t.driver_id = $1 AND t.status = 'reassignment_pending'
+               ORDER BY t.start_time DESC, t.id DESC
+               LIMIT 1
+               FOR UPDATE`,
+             [targetDriverId]
+           )
+         : { rows: [] };
+       const pendingTrip = pendingTripRes.rows[0] || null;
+
+       if (pendingTrip && pendingTrip.new_driver_id === null) {
+         await client.query(
+           `UPDATE trips
+              SET status = 'active',
+                  status_reason = NULL,
+                  updated_at = NOW()
+            WHERE id = $1`,
+           [pendingTrip.id]
+         );
+       }
+
+       const dispatchStatus = activeTrip && requestedStatus !== 'available' ? 'reassignment_pending' : 'idle';
+       const isDispatchable = requestedStatus === 'available';
+       const nextAvailableAt = requestedStatus === 'available' ? new Date() : (availabilityUntil || null);
 
       const updated = await client.query(
         `UPDATE drivers
@@ -175,22 +201,35 @@ const updateDriverAvailability = async (req, res) => {
         ]
       );
 
-      if (activeTrip && requestedStatus !== 'available') {
-        await client.query(
-          `UPDATE trips
-              SET status = 'reassignment_pending',
-                  status_reason = $2,
-                  updated_at = NOW()
-            WHERE id = $1`,
-          [activeTrip.id, reason || `Driver marked ${requestedStatus}`]
-        );
+       if (activeTrip && requestedStatus !== 'available') {
+         if (doNotReassign) {
+           await client.query(
+             `UPDATE trips
+                SET status = 'cancelled',
+                    status_reason = $2,
+                    do_not_reassign = TRUE,
+                    end_time = NOW(),
+                    updated_at = NOW()
+              WHERE id = $1`,
+             [activeTrip.id, reason || `Trip cancelled: driver marked ${requestedStatus}`]
+           );
+         } else {
+           await client.query(
+             `UPDATE trips
+                SET status = 'reassignment_pending',
+                    status_reason = $2,
+                    updated_at = NOW()
+              WHERE id = $1`,
+             [activeTrip.id, reason || `Driver marked ${requestedStatus}`]
+           );
 
-        await client.query(
-          `INSERT INTO trip_reassignment_log (trip_id, old_driver_id, new_driver_id, bus_id, route_id, reason, reassigned_by)
-           VALUES ($1, $2, NULL, $3, $4, $5, $6)`,
-          [activeTrip.id, targetDriverId, activeTrip.bus_id, activeTrip.route_id, reason || `Driver marked ${requestedStatus}`, req.user.id]
-        );
-      }
+           await client.query(
+             `INSERT INTO trip_reassignment_log (trip_id, old_driver_id, new_driver_id, bus_id, route_id, reason, reassigned_by)
+              VALUES ($1, $2, NULL, $3, $4, $5, $6)`,
+             [activeTrip.id, targetDriverId, activeTrip.bus_id, activeTrip.route_id, reason || `Driver marked ${requestedStatus}`, req.user.id]
+           );
+         }
+       }
 
       await client.query(
         `INSERT INTO driver_availability_history (driver_id, old_status, new_status, reason, source, changed_by, trip_id, bus_id)
@@ -223,6 +262,15 @@ const updateDriverAvailability = async (req, res) => {
             driver_id: targetDriverId,
             bus_id: activeTrip.bus_id,
             route_id: activeTrip.route_id
+          });
+        }
+
+        if (pendingTrip && requestedStatus === 'available') {
+          io.emit('trip:resumed', {
+            trip_id: pendingTrip.id,
+            driver_id: targetDriverId,
+            bus_id: pendingTrip.bus_id,
+            route_id: pendingTrip.route_id
           });
         }
       }
@@ -276,7 +324,7 @@ const reassignTrip = async (req, res) => {
     await client.query('BEGIN');
 
     const tripRes = await client.query(
-      `SELECT t.id, t.bus_id, t.route_id, t.driver_id, t.status, b.plate_number, r.route_name
+      `SELECT t.id, t.bus_id, t.route_id, t.driver_id, t.status, t.do_not_reassign, b.plate_number, r.route_name
          FROM trips t
          LEFT JOIN buses b ON b.id = t.bus_id
          LEFT JOIN routes r ON r.id = t.route_id
@@ -292,6 +340,11 @@ const reassignTrip = async (req, res) => {
     if (!['active', 'reassignment_pending'].includes(trip.status)) {
       await client.query('ROLLBACK');
       return res.status(409).json({ message: 'Only active or reassignment pending trips can be reassigned' });
+    }
+
+    if (trip.do_not_reassign) {
+      await client.query('ROLLBACK');
+      return res.status(409).json({ message: 'This trip is marked as do not reassign' });
     }
 
     const replacementRes = await client.query(

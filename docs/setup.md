@@ -55,6 +55,16 @@ psql -U hkcs_user -d hkcs_db -f database/seeds/initial_test_data.sql
 
 > **Note:** The `initial_schema.sql` file is a single consolidated migration. It includes all tables, columns, indexes, and data migrations.
 
+### Fix for Existing Databases
+
+If your database was initialized before `sender_name` and `sender_role` columns were added to `chat_messages`, or before the `chat_type` check constraint was expanded to support driver-to-parent and admin messaging, running the schema won't update existing tables. Fix it with:
+
+```bash
+psql -U hkcs_user -d hkcs_db -f database/migrations/add_chat_sender_columns.sql
+```
+
+This adds the missing columns and updates the `chat_type` constraint.
+
 ---
 
 ## 3. Backend Setup

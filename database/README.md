@@ -15,9 +15,10 @@ This directory contains everything needed to set up and populate the HKCS Postgr
 ```
 database/
 ├── migrations/
-│   └── initial_schema.sql    # Complete database schema (all tables, indexes, fixes)
+│   ├── initial_schema.sql              # Complete database schema (all tables, indexes, fixes)
+│   └── add_chat_sender_columns.sql     # Fix for existing databases missing chat sender columns
 └── seeds/
-    └── initial_test_data.sql # Sample data for testing and development
+    └── initial_test_data.sql           # Sample data for testing and development
 ```
 
 ### Migrations
@@ -25,8 +26,9 @@ database/
 | File | Description |
 |------|-------------|
 | `migrations/initial_schema.sql` | **Single consolidated schema** — creates all 20+ tables, indexes, constraints, and performs data migrations |
+| `migrations/add_chat_sender_columns.sql` | Adds missing `sender_name` and `sender_role` columns to `chat_messages` and extends the `chat_type` check constraint to support all role combinations (`parent_driver`, `parent_admin`, `driver_parent`, `driver_admin`, `admin_parent`, `admin_driver`) for existing databases |
 
-> **Note:**. These have been consolidated into a single `initial_schema.sql`. There is no need to run multiple files — just execute this one.
+> **Note:** These have been consolidated into a single `initial_schema.sql`. There is no need to run multiple files — just execute this one. If you already have an existing database and see errors about missing `sender_name` or `sender_role` columns, run the `add_chat_sender_columns.sql` migration.
 
 ### Seeds
 

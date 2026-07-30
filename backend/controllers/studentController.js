@@ -126,10 +126,10 @@ const getStudentsForDriver = async (req, res) => {
 
     const bus_id = driverResult.rows[0].bus_id;
 
-    // Get active trip for this bus
+    // Get active or reassignment_pending trip for this bus
     const tripResult = await pool.query(
       `SELECT id, route_id FROM trips 
-       WHERE bus_id = $1 AND status = 'active'
+       WHERE bus_id = $1 AND status IN ('active', 'reassignment_pending')
        ORDER BY start_time DESC LIMIT 1`,
       [bus_id]
     );

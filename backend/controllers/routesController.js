@@ -162,12 +162,18 @@ const getRouteEta = async (req, res) => {
         bus_lat: Number(bus_lat),
         bus_lng: Number(bus_lng)
       })
-    });
+    }).catch((fetchError) => fetchError);
 
-    if (!response.ok) {
-      const errorPayload = await response.json().catch(() => ({}));
-      return res.status(response.status).json({
-        message: errorPayload.detail || 'Failed to calculate route ETA'
+    if (response instanceof Error || !response.ok) {
+      const errorPayload = response instanceof Error ? {} : await response.json().catch(() => ({}));
+      console.warn('AI service unavailable, returning stops without ETA:', response.message || errorPayload.detail);
+      return res.status(200).json({
+        route_id: route.id,
+        route_name: route.route_name,
+        stops: validStops,
+        stops_with_eta: [],
+        total_stops: validStops.length,
+        message: 'ETA service unavailable, showing route stops only'
       });
     }
 

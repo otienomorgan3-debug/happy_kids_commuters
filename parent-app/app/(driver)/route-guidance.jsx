@@ -3,7 +3,7 @@ import {
   ActivityIndicator, RefreshControl
 } from 'react-native';
 import { moderateScale, scale, verticalScale, SCREEN_WIDTH } from '../../utils/responsive';
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { useFocusEffect, useRouter } from 'expo-router';
 import * as Location from 'expo-location';
 import { getMe, getAssignedStudents, getRouteById, getRouteEta } from '../../constants/api';
