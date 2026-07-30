@@ -2,35 +2,50 @@ import {
   View, Text, StyleSheet, ScrollView,
   TouchableOpacity, RefreshControl
 } from 'react-native';
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter, useFocusEffect } from 'expo-router';
+import { io } from 'socket.io-client';
 import { moderateScale, scale, verticalScale, SCREEN_WIDTH, isSmallScreen, dynamicFontSize } from '../../utils/responsive';
-import { getMe, getMyStudents, getNotifications, removeToken } from '../../constants/api';
+import { SOCKET_URL, getMe, getMyStudents, getNotifications, getParentTripStatus, removeToken } from '../../constants/api';
 
 export default function Dashboard() {
   const [user, setUser] = useState(null);
   const [students, setStudents] = useState([]);
   const [unread, setUnread] = useState(0);
+  const [tripStatuses, setTripStatuses] = useState([]);
   const [refreshing, setRefreshing] = useState(false);
   const router = useRouter();
+  const socketRef = useRef(null);
+  const currentUserIdRef = useRef(null);
 
   const fetchData = useCallback(async () => {
     try {
-      const [meRes, studentsRes, notifRes] = await Promise.all([
+      const [meRes, studentsRes, notifRes, tripStatusRes] = await Promise.allSettled([
         getMe(),
         getMyStudents(),
-        getNotifications()
+        getNotifications(),
+        getParentTripStatus(),
       ]);
-      setUser(meRes.data.user);
-      setStudents(studentsRes.data?.students || []);
-      setUnread(notifRes.data?.unread || 0);
-    } catch (err) {
-      console.error('Dashboard fetch error:', err);
-      if (err.response?.status === 401) {
+
+      const results = [meRes, studentsRes, notifRes, tripStatusRes];
+      const authFailure = results.find((result) => result.status === 'rejected' && result.reason?.response?.status === 401);
+
+      if (authFailure) {
         await removeToken();
         router.replace('/(auth)/parent-login');
+        return;
       }
+
+      if (meRes.status === 'fulfilled') setUser(meRes.value.data.user);
+      if (studentsRes.status === 'fulfilled') setStudents(studentsRes.value.data?.students || []);
+      if (notifRes.status === 'fulfilled') setUnread(notifRes.value.data?.unread || 0);
+      if (tripStatusRes.status === 'fulfilled') {
+        setTripStatuses(tripStatusRes.value.data?.trip_statuses || []);
+      }
+    } catch (err) {
+      console.error('Dashboard fetch error:', err);
       setStudents([]);
+      setTripStatuses([]);
     }
   }, [router]);
 
@@ -47,6 +62,38 @@ export default function Dashboard() {
       fetchData();
     }, [fetchData])
   );
+
+  useEffect(() => {
+    currentUserIdRef.current = user?.id || null;
+    if (user?.id && socketRef.current?.connected) {
+      socketRef.current.emit('user:register', { user_id: user.id });
+    }
+  }, [user?.id]);
+
+  useEffect(() => {
+    socketRef.current = io(SOCKET_URL);
+    const socket = socketRef.current;
+
+    const refreshLiveData = () => {
+      fetchData();
+    };
+
+    socket.on('connect', () => {
+      if (currentUserIdRef.current) {
+        socket.emit('user:register', { user_id: currentUserIdRef.current });
+      }
+    });
+    socket.on('trip:reassignment_needed', refreshLiveData);
+    socket.on('trip:reassigned', refreshLiveData);
+    socket.on('driver:availability_changed', refreshLiveData);
+
+    return () => {
+      socket.off('trip:reassignment_needed', refreshLiveData);
+      socket.off('trip:reassigned', refreshLiveData);
+      socket.off('driver:availability_changed', refreshLiveData);
+      socket.disconnect();
+    };
+  }, [fetchData]);
 
   const getStatusColor = (status) => {
     switch (status) {
@@ -72,6 +119,68 @@ export default function Dashboard() {
     }
   };
 
+  const tripStatusCard = (() => {
+    const [topStatus] = tripStatuses;
+
+    if (!topStatus) {
+      return {
+        state: 'clear',
+        title: 'Trip status is normal',
+        message: 'Your children’s routes are currently running on schedule.',
+        routeName: null,
+        driverName: null,
+        busPlate: null,
+        affectedStudents: [],
+      };
+    }
+
+    const affectedStudents = topStatus.affected_students || [];
+    const childLabel = affectedStudents.length === 1
+      ? '1 child affected'
+      : `${affectedStudents.length} children affected`;
+
+    if (topStatus.card_state === 'delayed') {
+      return {
+        ...topStatus,
+        state: 'delayed',
+        title: 'Trip delayed',
+        message: topStatus.reassignment_reason
+          ? `${topStatus.route_name} is waiting for a replacement driver. ${childLabel}. Reason: ${topStatus.reassignment_reason}.`
+          : `${topStatus.route_name} is waiting for a replacement driver. ${childLabel}.`,
+        routeName: topStatus.route_name,
+        driverName: topStatus.driver_name,
+        busPlate: topStatus.plate_number,
+        affectedStudents,
+      };
+    }
+
+    if (topStatus.card_state === 'reassigned') {
+      return {
+        ...topStatus,
+        state: 'reassigned',
+        title: 'Driver reassigned',
+        message: topStatus.new_driver_name
+          ? `${topStatus.route_name} now has ${topStatus.new_driver_name} assigned. ${childLabel}.`
+          : `${topStatus.route_name} has been reassigned and is back in motion. ${childLabel}.`,
+        routeName: topStatus.route_name,
+        driverName: topStatus.new_driver_name || topStatus.driver_name,
+        busPlate: topStatus.plate_number,
+        affectedStudents,
+      };
+    }
+
+    return {
+      ...topStatus,
+      state: 'clear',
+      title: 'Trip back on schedule',
+      message: `${topStatus.route_name} is running normally again. ${childLabel}.`,
+      routeName: topStatus.route_name,
+      driverName: topStatus.driver_name,
+      busPlate: topStatus.plate_number,
+      affectedStudents,
+    };
+  })();
+
   return (
     <ScrollView
       style={styles.container}
@@ -93,6 +202,31 @@ export default function Dashboard() {
             </View>
           )}
         </TouchableOpacity>
+      </View>
+
+      {/* Live Trip Status */}
+      <View style={[
+        styles.tripAlertCard,
+        tripStatusCard.state === 'delayed'
+          ? styles.tripAlertDelayed
+          : tripStatusCard.state === 'reassigned'
+            ? styles.tripAlertReassigned
+            : styles.tripAlertNormal
+      ]}>
+        <Text style={styles.tripAlertLabel}>Live Trip Status</Text>
+        <Text style={styles.tripAlertTitle}>{tripStatusCard.title}</Text>
+        <Text style={styles.tripAlertMessage}>{tripStatusCard.message}</Text>
+        <View style={styles.tripAlertMetaRow}>
+          {!!tripStatusCard.routeName && (
+            <Text style={styles.tripAlertMeta} numberOfLines={1}>Route: {tripStatusCard.routeName}</Text>
+          )}
+          {!!tripStatusCard.busPlate && (
+            <Text style={styles.tripAlertMeta} numberOfLines={1}>Bus: {tripStatusCard.busPlate}</Text>
+          )}
+        </View>
+        {!!tripStatusCard.driverName && (
+          <Text style={styles.tripAlertMeta} numberOfLines={1}>Driver: {tripStatusCard.driverName}</Text>
+        )}
       </View>
 
       {/* Children */}
@@ -187,6 +321,60 @@ const styles = StyleSheet.create({
   name: { color: '#fff', fontSize: moderateScale(22), fontWeight: 'bold', marginTop: verticalScale(2) },
   notifButton: { position: 'relative', padding: scale(8) },
   notifEmoji: { fontSize: moderateScale(24) },
+  tripAlertCard: {
+    marginHorizontal: scale(16),
+    marginTop: verticalScale(20),
+    marginBottom: verticalScale(10),
+    borderRadius: verticalScale(16),
+    padding: verticalScale(16),
+    backgroundColor: '#fff',
+    shadowColor: '#000',
+    shadowOpacity: 0.05,
+    shadowRadius: verticalScale(8),
+    elevation: 2,
+  },
+  tripAlertNormal: {
+    borderLeftWidth: scale(5),
+    borderLeftColor: '#16a34a',
+  },
+  tripAlertDelayed: {
+    borderLeftWidth: scale(5),
+    borderLeftColor: '#f59e0b',
+  },
+  tripAlertReassigned: {
+    borderLeftWidth: scale(5),
+    borderLeftColor: '#2563eb',
+  },
+  tripAlertLabel: {
+    fontSize: dynamicFontSize(10, 11, 12),
+    fontWeight: '800',
+    color: '#718096',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    marginBottom: verticalScale(4),
+  },
+  tripAlertTitle: {
+    fontSize: dynamicFontSize(16, 17, 18),
+    fontWeight: '800',
+    color: '#1f2937',
+  },
+  tripAlertMessage: {
+    fontSize: dynamicFontSize(12, 13, 14),
+    color: '#4a5568',
+    marginTop: verticalScale(6),
+    lineHeight: moderateScale(18),
+  },
+  tripAlertMetaRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: scale(8),
+    marginTop: verticalScale(10),
+  },
+  tripAlertMeta: {
+    fontSize: dynamicFontSize(11, 12, 13),
+    color: '#2d3748',
+    fontWeight: '600',
+  },
   badge: {
     position: 'absolute', top: verticalScale(4), right: scale(4),
     backgroundColor: '#e53e3e', borderRadius: scale(10),

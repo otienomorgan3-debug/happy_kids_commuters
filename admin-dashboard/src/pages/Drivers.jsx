@@ -1,5 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
-import { getAllDrivers, getAllBuses, assignDriver, unassignDriver, addDriver } from '../api/api';
+import {
+    getAllDrivers, getAllBuses, assignDriver, unassignDriver, addDriver,
+    getDriverAvailabilityHistory, updateDriverAvailability, reassignTrip
+} from '../api/api';
 import toast from 'react-hot-toast';
 
 export default function Drivers() {
@@ -10,6 +13,13 @@ export default function Drivers() {
     const [selectedBus, setSelectedBus] = useState('');
     const [showAddForm, setShowAddForm] = useState(false);
     const [saving, setSaving] = useState(false);
+    const [availabilityEditor, setAvailabilityEditor] = useState(null);
+    const [reassignEditor, setReassignEditor] = useState(null);
+    const [availabilityHistory, setAvailabilityHistory] = useState([]);
+    const [selectedReplacementDriver, setSelectedReplacementDriver] = useState('');
+    const [availabilityReason, setAvailabilityReason] = useState('');
+    const [availabilityUntil, setAvailabilityUntil] = useState('');
+    const [reassignReason, setReassignReason] = useState('');
     const [form, setForm] = useState({
         name: '',
         email: '',
@@ -26,6 +36,9 @@ export default function Drivers() {
             ]);
             setDrivers(driversRes.data.drivers);
             setBuses(busesRes.data.buses);
+            getDriverAvailabilityHistory({ limit: 10 })
+                .then((res) => setAvailabilityHistory(res.data.history || []))
+                .catch(() => {});
         } catch {
             toast.error('Failed to load drivers');
         } finally {
@@ -62,6 +75,66 @@ export default function Drivers() {
             toast.error('Failed to unassign driver');
         }
     };
+
+    const handleSaveAvailability = async () => {
+        if (!availabilityEditor) return;
+        try {
+            await updateDriverAvailability(availabilityEditor.id, {
+                availability_status: availabilityEditor.status,
+                reason: availabilityReason || null,
+                availability_until: availabilityUntil || null,
+            });
+            toast.success('Driver availability updated');
+            setAvailabilityEditor(null);
+            setAvailabilityReason('');
+            setAvailabilityUntil('');
+            fetchData();
+        } catch (err) {
+            toast.error(err.response?.data?.message || 'Failed to update availability');
+        }
+    };
+
+    const handleSaveReassign = async () => {
+        if (!reassignEditor || !selectedReplacementDriver) return toast.error('Select a replacement driver');
+        try {
+            await reassignTrip(reassignEditor.tripId, {
+                replacement_driver_id: parseInt(selectedReplacementDriver),
+                reason: reassignReason || 'Driver unavailable'
+            });
+            toast.success('Trip reassigned');
+            setReassignEditor(null);
+            setSelectedReplacementDriver('');
+            setReassignReason('');
+            fetchData();
+        } catch (err) {
+            toast.error(err.response?.data?.message || 'Failed to reassign trip');
+        }
+    };
+
+    const statusBadgeClass = (value) => {
+        switch (value) {
+            case 'available': return 'bg-green-100 text-green-700';
+            case 'on_trip': return 'bg-blue-100 text-blue-700';
+            case 'reassignment_pending': return 'bg-orange-100 text-orange-700';
+            case 'unavailable':
+            case 'on_leave':
+            case 'sick':
+            case 'offline':
+                return 'bg-red-100 text-red-700';
+            default: return 'bg-gray-100 text-gray-600';
+        }
+    };
+
+    const availabilityStatusLabel = (value) => (value || 'available').replace(/_/g, ' ');
+
+    const replacementOptions = reassignEditor
+        ? drivers.filter(driver =>
+            driver.id !== reassignEditor.currentDriverId &&
+            driver.availability_status === 'available' &&
+            driver.is_dispatchable &&
+            (!reassignEditor.busId || !driver.bus_id || driver.bus_id === reassignEditor.busId)
+        )
+        : [];
 
     const handleAddDriver = async (e) => {
         e.preventDefault();
@@ -164,6 +237,126 @@ export default function Drivers() {
                 </form>
             )}
 
+            {availabilityEditor && (
+                <div className="bg-white rounded-xl border border-gray-200 p-6 space-y-4">
+                    <div className="flex items-center justify-between">
+                        <h3 className="font-semibold text-gray-800">Update Availability</h3>
+                        <button
+                            type="button"
+                            onClick={() => {
+                                setAvailabilityEditor(null);
+                                setAvailabilityReason('');
+                                setAvailabilityUntil('');
+                            }}
+                            className="text-sm text-gray-500 hover:text-gray-700"
+                        >
+                            Cancel
+                        </button>
+                    </div>
+                    <p className="text-sm text-gray-500">
+                        {availabilityEditor.name} • {availabilityEditor.assigned_bus || 'Unassigned'}
+                    </p>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">Status</label>
+                            <select
+                                value={availabilityEditor.status}
+                                onChange={e => setAvailabilityEditor(prev => ({ ...prev, status: e.target.value }))}
+                                className="w-full border border-gray-300 rounded-lg px-4 py-2 text-sm"
+                            >
+                                <option value="available">Available</option>
+                                <option value="unavailable">Unavailable</option>
+                                <option value="on_leave">On leave</option>
+                                <option value="sick">Sick</option>
+                                <option value="offline">Offline</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">Available until</label>
+                            <input
+                                type="datetime-local"
+                                value={availabilityUntil}
+                                onChange={e => setAvailabilityUntil(e.target.value)}
+                                className="w-full border border-gray-300 rounded-lg px-4 py-2 text-sm"
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">Reason</label>
+                            <input
+                                type="text"
+                                value={availabilityReason}
+                                onChange={e => setAvailabilityReason(e.target.value)}
+                                className="w-full border border-gray-300 rounded-lg px-4 py-2 text-sm"
+                                placeholder="Optional reason"
+                            />
+                        </div>
+                    </div>
+                    <button
+                        type="button"
+                        onClick={handleSaveAvailability}
+                        className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-700"
+                    >
+                        Save Availability
+                    </button>
+                </div>
+            )}
+
+            {reassignEditor && (
+                <div className="bg-white rounded-xl border border-gray-200 p-6 space-y-4">
+                    <div className="flex items-center justify-between">
+                        <h3 className="font-semibold text-gray-800">Reassign Trip</h3>
+                        <button
+                            type="button"
+                            onClick={() => {
+                                setReassignEditor(null);
+                                setSelectedReplacementDriver('');
+                                setReassignReason('');
+                            }}
+                            className="text-sm text-gray-500 hover:text-gray-700"
+                        >
+                            Cancel
+                        </button>
+                    </div>
+                    <p className="text-sm text-gray-500">
+                        Bus {reassignEditor.busPlate || reassignEditor.busId} • {reassignEditor.routeName || 'Active trip'} • Trip #{reassignEditor.tripId}
+                    </p>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">Replacement driver</label>
+                            <select
+                                value={selectedReplacementDriver}
+                                onChange={e => setSelectedReplacementDriver(e.target.value)}
+                                className="w-full border border-gray-300 rounded-lg px-4 py-2 text-sm"
+                            >
+                                <option value="">Select available driver</option>
+                                {replacementOptions.map(driver => (
+                                    <option key={driver.id} value={driver.id}>
+                                        {driver.name} {driver.assigned_bus ? `• ${driver.assigned_bus}` : '• Unassigned'}
+                                    </option>
+                                ))}
+                            </select>
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">Reason</label>
+                            <input
+                                type="text"
+                                value={reassignReason}
+                                onChange={e => setReassignReason(e.target.value)}
+                                className="w-full border border-gray-300 rounded-lg px-4 py-2 text-sm"
+                                placeholder="Why is the trip being reassigned?"
+                            />
+                        </div>
+                    </div>
+                    <button
+                        type="button"
+                        onClick={handleSaveReassign}
+                        className="bg-green-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-green-700"
+                    >
+                        Reassign Trip
+                    </button>
+                </div>
+            )}
+
             <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
                 <div className="overflow-x-auto">
                     <table className="w-full text-sm">
@@ -172,6 +365,9 @@ export default function Drivers() {
                                 <th className="px-6 py-3 text-left text-gray-600">Driver</th>
                                 <th className="px-6 py-3 text-left text-gray-600">Phone</th>
                                 <th className="px-6 py-3 text-left text-gray-600">License</th>
+                                <th className="px-6 py-3 text-left text-gray-600">Availability</th>
+                                <th className="px-6 py-3 text-left text-gray-600">Dispatch</th>
+                                <th className="px-6 py-3 text-left text-gray-600">Active Trip</th>
                                 <th className="px-6 py-3 text-left text-gray-600">Assigned Bus</th>
                                 <th className="px-6 py-3 text-left text-gray-600">Actions</th>
                             </tr>
@@ -179,7 +375,7 @@ export default function Drivers() {
                         <tbody className="divide-y divide-gray-100">
                             {loading ? (
                                 <tr>
-                                    <td colSpan={5} className="px-6 py-8 text-center text-gray-400">
+                                    <td colSpan={8} className="px-6 py-8 text-center text-gray-400">
                                         Loading drivers...
                                     </td>
                                 </tr>
@@ -188,6 +384,46 @@ export default function Drivers() {
                                     <td className="px-6 py-4 font-medium">{driver.name}</td>
                                     <td className="px-6 py-4 text-gray-500">{driver.phone}</td>
                                     <td className="px-6 py-4">{driver.license_number}</td>
+                                    <td className="px-6 py-4">
+                                        <span className={`inline-flex px-2 py-1 rounded-full text-xs font-medium ${statusBadgeClass(driver.availability_status)}`}>
+                                            {availabilityStatusLabel(driver.availability_status)}
+                                        </span>
+                                    </td>
+                                    <td className="px-6 py-4">
+                                        <span className={`inline-flex px-2 py-1 rounded-full text-xs font-medium ${statusBadgeClass(driver.dispatch_status)}`}>
+                                            {availabilityStatusLabel(driver.dispatch_status)}
+                                        </span>
+                                    </td>
+                                    <td className="px-6 py-4 text-xs text-gray-600">
+                                        {driver.active_trip_id ? (
+                                            <div className="space-y-1">
+                                                <div className="font-medium text-gray-800">Trip #{driver.active_trip_id}</div>
+                                                <div>{driver.active_route_name || 'Active route'}</div>
+                                                <div className="text-gray-500">{driver.active_trip_status}</div>
+                                                {driver.active_trip_status === 'reassignment_pending' && (
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => {
+                                                            setReassignEditor({
+                                                                tripId: driver.active_trip_id,
+                                                                busId: driver.active_trip_bus_id || driver.bus_id,
+                                                                busPlate: driver.assigned_bus,
+                                                                routeName: driver.active_route_name,
+                                                                currentDriverId: driver.id,
+                                                            });
+                                                            setSelectedReplacementDriver('');
+                                                            setReassignReason(`Replacement for ${driver.name}`);
+                                                        }}
+                                                        className="text-xs text-blue-600 hover:text-blue-800 font-medium"
+                                                    >
+                                                        Reassign Trip
+                                                    </button>
+                                                )}
+                                            </div>
+                                        ) : (
+                                            <span className="text-gray-400">No active trip</span>
+                                        )}
+                                    </td>
                                     <td className="px-6 py-4">
                                         {driver.assigned_bus ? (
                                             <span className="bg-green-100 text-green-700 px-2 py-1 rounded-full text-xs font-medium">
@@ -245,6 +481,22 @@ export default function Drivers() {
                                                         Unassign
                                                     </button>
                                                 )}
+                                                <button
+                                                    type="button"
+                                                    onClick={() => {
+                                                        setAvailabilityEditor({
+                                                            id: driver.id,
+                                                            name: driver.name,
+                                                            assigned_bus: driver.assigned_bus,
+                                                            status: driver.availability_status || 'available'
+                                                        });
+                                                        setAvailabilityReason(driver.availability_reason || '');
+                                                        setAvailabilityUntil(driver.availability_until ? new Date(driver.availability_until).toISOString().slice(0, 16) : '');
+                                                    }}
+                                                    className="text-purple-600 hover:text-purple-800 text-xs font-medium"
+                                                >
+                                                    Change Status
+                                                </button>
                                             </div>
                                         )}
                                     </td>
@@ -253,6 +505,30 @@ export default function Drivers() {
                         </tbody>
                     </table>
                 </div>
+            </div>
+
+            <div className="bg-white rounded-xl border border-gray-200 p-6">
+                <h3 className="font-semibold text-gray-800 mb-4">Recent Availability Changes</h3>
+                {availabilityHistory.length === 0 ? (
+                    <p className="text-sm text-gray-400">No availability changes yet</p>
+                ) : (
+                    <div className="space-y-3">
+                        {availabilityHistory.map(item => (
+                            <div key={item.id} className="flex items-center justify-between rounded-lg border border-gray-200 px-4 py-3">
+                                <div>
+                                    <div className="text-sm font-medium text-gray-800">{item.driver_name}</div>
+                                    <div className="text-xs text-gray-500">
+                                        {item.old_status} → {item.new_status}
+                                        {item.reason ? ` • ${item.reason}` : ''}
+                                    </div>
+                                </div>
+                                <div className="text-xs text-gray-400">
+                                    {new Date(item.created_at).toLocaleString()}
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                )}
             </div>
         </div>
     );

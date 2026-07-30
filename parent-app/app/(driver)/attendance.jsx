@@ -3,7 +3,8 @@ import {
   TouchableOpacity, Alert, RefreshControl, ActivityIndicator
 } from 'react-native';
 import { moderateScale, scale, verticalScale, SCREEN_WIDTH } from '../../utils/responsive';
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useCallback } from 'react';
+import { useFocusEffect } from 'expo-router';
 import { getAssignedStudents, markBoarded, markDropped } from '../../constants/api';
 
 export default function Attendance() {
@@ -14,7 +15,7 @@ export default function Attendance() {
   const [actionLoading, setActionLoading] = useState(null);
   const [stats, setStats] = useState({ waiting: 0, boarded: 0, dropped: 0 });
 
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     try {
       const res = await getAssignedStudents();
       const studentsList = res.data.students || [];
@@ -30,7 +31,7 @@ export default function Attendance() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
@@ -38,7 +39,9 @@ export default function Attendance() {
     setRefreshing(false);
   }, []);
 
-  useEffect(() => { fetchData(); }, []);
+  useFocusEffect(useCallback(() => {
+    fetchData();
+  }, [fetchData]));
 
   const handleBoarded = (student) => {
     Alert.alert(
@@ -49,7 +52,7 @@ export default function Attendance() {
         {
           text: '✓ Confirm Boarded',
           onPress: async () => {
-            if (!tripId) return Alert.alert('No Active Trip', 'Start a trip first from the Home tab');
+    if (!tripId) return Alert.alert('No Active Trip', 'Start a trip first from the Home tab');
             setActionLoading(student.id);
             try {
               await markBoarded({ student_id: student.id, trip_id: tripId });

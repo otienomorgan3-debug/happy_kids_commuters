@@ -21,6 +21,30 @@ const normalizeStops = (stops) => {
 const hasCoordinates = (stops) =>
   stops.every((stop) => Number.isFinite(stop.latitude) && Number.isFinite(stop.longitude));
 
+const haversineDistance = (first, second) => {
+  const toRadians = (value) => (Number(value) * Math.PI) / 180;
+  const latitudeDelta = toRadians(Number(second.latitude) - Number(first.latitude));
+  const longitudeDelta = toRadians(Number(second.longitude) - Number(first.longitude));
+  const a = Math.sin(latitudeDelta / 2) ** 2 +
+    Math.cos(toRadians(first.latitude)) * Math.cos(toRadians(second.latitude)) *
+    Math.sin(longitudeDelta / 2) ** 2;
+  return 6371 * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+};
+
+const routeMetrics = (stops) => {
+  const geographicDistanceKm = stops.slice(1).reduce(
+    (total, stop, index) => total + haversineDistance(stops[index], stop), 0
+  );
+  // A road-distance factor makes an honest, repeatable estimate without a
+  // paid map provider. ETA uses the same local traffic assumptions.
+  const estimatedRoadDistanceKm = geographicDistanceKm * 1.3;
+  return {
+    geographic_distance_km: Number(geographicDistanceKm.toFixed(2)),
+    estimated_road_distance_km: Number(estimatedRoadDistanceKm.toFixed(2)),
+    estimated_duration_minutes: Math.round((estimatedRoadDistanceKm / 25) * 60),
+  };
+};
+
 const formatRouteResponse = async (routeId, clientOrPool = pool) => {
   const result = await clientOrPool.query(
     `SELECT r.id, r.route_name, r.estimated_time,
@@ -48,24 +72,38 @@ const formatRouteResponse = async (routeId, clientOrPool = pool) => {
 };
 
 const optimizeStopsOrder = async (stops) => {
-  if (!hasCoordinates(stops) || stops.length < 2) return stops;
+  if (!hasCoordinates(stops)) {
+    const error = new Error('Every stop needs valid latitude and longitude before it can be optimized');
+    error.statusCode = 422;
+    throw error;
+  }
+  if (stops.length < 2) return { stops, engine: 'Not needed' };
   try {
     const response = await axios.post(`${AI_SERVICE_URL}/optimize-route`, {
       stops: stops.map((stop) => ({
         id: stop.id, name: stop.stop_name,
         latitude: stop.latitude, longitude: stop.longitude
-      }))
+      })),
+      preserve_last_stop: true
     });
     const payload = response.data;
     const optimizedRoute = payload.optimized_route || [];
-    return optimizedRoute
+    const optimizedStops = optimizedRoute
       .map((optimizedStop, index) => ({
         ...stops.find((stop) => stop.id === optimizedStop.id) || optimizedStop,
         stop_order: index + 1
       }))
       .filter(Boolean);
-  } catch {
-    return stops;
+    if (optimizedStops.length !== stops.length) throw new Error('AI service returned an incomplete route');
+    return {
+      stops: optimizedStops,
+      engine: 'AI heuristic service',
+      preserve_last_stop: Boolean(payload.preserve_last_stop)
+    };
+  } catch (error) {
+    // The same deterministic nearest-neighbour calculation is available in
+    // the AI service. Do not silently claim an optimization when it is down.
+    throw new Error(`AI optimization service unavailable: ${error.message}`);
   }
 };
 
@@ -442,11 +480,27 @@ const getAllDrivers = async (req, res) => {
   try {
     const result = await pool.query(
       `SELECT d.id, d.license_number, d.bus_id,
+              d.availability_status, d.dispatch_status, d.availability_reason,
+              d.availability_until, d.is_dispatchable, d.last_status_update_at,
               u.name, u.email, u.phone,
-              b.plate_number as assigned_bus
+              b.plate_number as assigned_bus,
+              active_trip.id as active_trip_id,
+              active_trip.status as active_trip_status,
+              active_trip.route_id as active_route_id,
+              active_trip.bus_id as active_trip_bus_id,
+              active_trip.route_name as active_route_name
        FROM drivers d
        JOIN users u ON d.user_id = u.id
        LEFT JOIN buses b ON d.bus_id = b.id
+       LEFT JOIN LATERAL (
+         SELECT t.id, t.status, t.route_id, t.bus_id, r.route_name
+           FROM trips t
+           LEFT JOIN routes r ON r.id = t.route_id
+          WHERE t.driver_id = d.id
+            AND t.status IN ('active', 'reassignment_pending')
+          ORDER BY t.start_time DESC NULLS LAST, t.id DESC
+          LIMIT 1
+       ) active_trip ON TRUE
        ORDER BY u.name`
     );
     res.status(200).json({ drivers: result.rows });
@@ -460,6 +514,16 @@ const assignDriverToBus = async (req, res) => {
   const { driver_id, bus_id } = req.body;
   try {
     if (!driver_id || !bus_id) return res.status(400).json({ message: 'driver_id and bus_id are required' });
+    const activeTrip = await pool.query(
+      `SELECT t.id
+         FROM trips t
+        WHERE t.driver_id = $1 AND t.status = 'active'
+        LIMIT 1`,
+      [driver_id]
+    );
+    if (activeTrip.rows.length > 0) {
+      return res.status(409).json({ message: 'End or reassign the active trip before changing the bus assignment' });
+    }
     const busCheck = await pool.query('SELECT id FROM buses WHERE id = $1', [bus_id]);
     if (busCheck.rows.length === 0) return res.status(404).json({ message: 'Bus not found' });
     const existingDriver = await pool.query('SELECT id FROM drivers WHERE bus_id = $1 AND id != $2', [bus_id, driver_id]);
@@ -476,6 +540,16 @@ const assignDriverToBus = async (req, res) => {
 const unassignDriver = async (req, res) => {
   const { driver_id } = req.params;
   try {
+    const activeTrip = await pool.query(
+      `SELECT t.id
+         FROM trips t
+        WHERE t.driver_id = $1 AND t.status = 'active'
+        LIMIT 1`,
+      [driver_id]
+    );
+    if (activeTrip.rows.length > 0) {
+      return res.status(409).json({ message: 'End or reassign the active trip before unassigning the driver' });
+    }
     await pool.query('UPDATE drivers SET bus_id = NULL WHERE id = $1', [driver_id]);
     res.status(200).json({ message: 'Driver unassigned successfully' });
   } catch (error) {
@@ -542,11 +616,7 @@ const addRoute = async (req, res) => {
       [route_name, estimated_time || null]
     );
     const route = result.rows[0];
-    let stopsToSave = normalizedStops;
-    if (normalizedStops.length > 1) {
-      try { stopsToSave = await optimizeStopsOrder(normalizedStops); } catch {}
-    }
-    await persistOptimizedStops(client, route.id, stopsToSave);
+    await persistOptimizedStops(client, route.id, normalizedStops);
     await client.query('COMMIT');
     const routeWithStops = await formatRouteResponse(route.id);
     res.status(201).json({ message: 'Route added successfully', route: routeWithStops });
@@ -613,9 +683,7 @@ const updateRoute = async (req, res) => {
     );
     if (result.rows.length === 0) { await client.query('ROLLBACK'); return res.status(404).json({ message: 'Route not found' }); }
     if (normalizedStops) {
-      let stopsToSave = normalizedStops;
-      if (normalizedStops.length > 1) { try { stopsToSave = await optimizeStopsOrder(normalizedStops); } catch {} }
-      await persistOptimizedStops(client, id, stopsToSave);
+      await persistOptimizedStops(client, id, normalizedStops);
     }
     await client.query('COMMIT');
     const routeWithStops = await formatRouteResponse(id);
@@ -647,16 +715,35 @@ const optimizeRoute = async (req, res) => {
     const stopsResult = await pool.query('SELECT * FROM route_stops WHERE route_id = $1 ORDER BY stop_order', [id]);
     const stops = normalizeStops(stopsResult.rows);
     if (stops.length < 2) return res.status(400).json({ message: 'Need at least 2 stops to optimize' });
-    const optimized = await optimizeStopsOrder(stops);
+    if (!hasCoordinates(stops)) {
+      return res.status(422).json({ message: 'Every stop needs latitude and longitude before AI optimization can run' });
+    }
+    const before = routeMetrics(stops);
+    const optimization = await optimizeStopsOrder(stops);
+    const optimized = optimization.stops;
+    const after = routeMetrics(optimized);
     await client.query('BEGIN');
     await persistOptimizedStops(client, id, optimized);
     await client.query('COMMIT');
     const routeWithStops = await formatRouteResponse(id, client);
-    res.status(200).json({ message: 'Route optimized successfully', route: routeWithStops });
+    res.status(200).json({
+      message: 'Route optimized successfully',
+      route: routeWithStops,
+      optimization: {
+        engine: optimization.engine,
+        preserve_last_stop: optimization.preserve_last_stop,
+        before,
+        after,
+        distance_saved_km: Number((before.estimated_road_distance_km - after.estimated_road_distance_km).toFixed(2)),
+        time_saved_minutes: before.estimated_duration_minutes - after.estimated_duration_minutes,
+        start_stop: stops[0].stop_name,
+        evaluated_stops: stops.length,
+      }
+    });
   } catch (error) {
     await client.query('ROLLBACK').catch(() => {});
     console.error('Optimize route error:', error.message);
-    res.status(500).json({ message: 'Server error optimizing route' });
+    res.status(error.statusCode || 503).json({ message: error.message || 'AI optimization service is unavailable' });
   } finally { client.release(); }
 };
 

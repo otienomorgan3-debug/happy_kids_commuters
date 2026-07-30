@@ -5,7 +5,7 @@ def calculate_distance(point1, point2):
     """Calculate distance in km between two GPS coordinates"""
     return haversine(point1, point2, unit=Unit.KILOMETERS)
 
-def nearest_neighbor_route(stops: list) -> list:
+def nearest_neighbor_route(stops: list, preserve_last_stop: bool = False) -> list:
     """
     Nearest Neighbor Algorithm — greedy route optimization.
     Starts from the first stop and always visits the closest unvisited stop next.
@@ -21,7 +21,8 @@ def nearest_neighbor_route(stops: list) -> list:
         return stops
 
     unvisited = stops.copy()
-    route = [unvisited.pop(0)]  # Start from first stop (school or depot)
+    route = [unvisited.pop(0)]  # Keep the route anchored at the first stop
+    end_stop = unvisited.pop(-1) if preserve_last_stop and unvisited else None
 
     while unvisited:
         current = route[-1]
@@ -38,6 +39,9 @@ def nearest_neighbor_route(stops: list) -> list:
 
         route.append(closest)
         unvisited.remove(closest)
+
+    if end_stop is not None:
+        route.append(end_stop)
 
     return route
 

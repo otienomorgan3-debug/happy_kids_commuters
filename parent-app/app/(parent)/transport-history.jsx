@@ -74,7 +74,7 @@ export default function TransportHistory() {
         <TouchableOpacity onPress={() => router.back()}>
           <Text style={styles.backText}>← Back</Text>
         </TouchableOpacity>
-        <Text style={styles.title}>Transport History</Text>
+        <Text style={styles.title}>My Children’s History</Text>
         <View style={{ width: SCREEN_WIDTH < 350 ? scale(48) : scale(56) }} />
       </View>
 
@@ -88,7 +88,7 @@ export default function TransportHistory() {
             <Text style={styles.emptyEmoji}>🚌</Text>
             <Text style={styles.emptyTitle}>No trips yet</Text>
             <Text style={styles.emptySub}>
-              Student transport history will appear here after the first trip.
+              Your children’s transport history will appear here after their first trip.
             </Text>
           </View>
         }
@@ -135,7 +135,7 @@ export default function TransportHistory() {
             {item.attendance && item.attendance.length > 0 && (
               <>
                 <View style={styles.divider} />
-                <Text style={styles.attendanceTitle}>Attendance:</Text>
+                <Text style={styles.attendanceTitle}>Your children’s attendance:</Text>
                 {item.attendance.map((record) => (
                   <View key={record.id} style={styles.attendanceRow}>
                     <Text style={styles.attendanceText}>

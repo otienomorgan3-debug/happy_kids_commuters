@@ -13,7 +13,13 @@ const {
   getIncidents, updateIncidentStatus, getIncidentStats,
   getAllPaymentsAdmin, getPaymentStatsAdmin,
 } = require('../controllers/adminController');
-const { sendMessage, getConversation, getChatList, markMessagesRead } = require('../controllers/chatController');
+const {
+  getAvailableDrivers,
+  getDriverAvailabilityHistory,
+  updateDriverAvailability,
+  reassignTrip
+} = require('../controllers/driverAvailabilityController');
+const { sendMessage, getConversation, getChatList, getContacts, markMessagesRead } = require('../controllers/chatController');
 const { protect, restrictTo } = require('../middleware/authMiddleware');
 
 router.use(protect, restrictTo('admin', 'superadmin'));
@@ -46,9 +52,13 @@ router.delete('/buses/:id', deleteBus);
 
 // Driver management
 router.get('/drivers', getAllDrivers);
+router.get('/drivers/available', getAvailableDrivers);
+router.get('/drivers/availability-history', getDriverAvailabilityHistory);
 router.post('/drivers', addDriver);
 router.post('/drivers/assign', assignDriverToBus);
 router.put('/drivers/:driver_id/unassign', unassignDriver);
+router.patch('/drivers/:driver_id/availability', updateDriverAvailability);
+router.post('/trips/:trip_id/reassign', reassignTrip);
 
 // Route management
 router.get('/routes', getAllRoutes);
@@ -70,6 +80,7 @@ router.get('/reports/trips', getTripReport);
 // Chat/Messaging
 router.post('/chat/send', sendMessage);
 router.get('/chat/list', getChatList);
+router.get('/chat/contacts', getContacts);
 router.get('/chat/conversation/:other_user_id', getConversation);
 router.put('/chat/read/:other_user_id', markMessagesRead);
 

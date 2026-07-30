@@ -5,6 +5,8 @@ import { addRoute, deleteRoute, getAllRoutes, updateRoute, optimizeRoute } from 
 const createStop = (order = 1) => ({
     stop_name: '',
     location: '',
+    latitude: '',
+    longitude: '',
     stop_order: order,
 });
 
@@ -20,6 +22,12 @@ const normalizeStops = (stops) =>
         .map((stop, index) => ({
             stop_name: stop.stop_name.trim(),
             location: stop.location.trim(),
+            latitude: stop.latitude === '' || stop.latitude === null || stop.latitude === undefined
+                ? null
+                : Number(stop.latitude),
+            longitude: stop.longitude === '' || stop.longitude === null || stop.longitude === undefined
+                ? null
+                : Number(stop.longitude),
             stop_order: Number(stop.stop_order) || index + 1,
         }))
         .sort((firstStop, secondStop) => firstStop.stop_order - secondStop.stop_order);
@@ -30,6 +38,7 @@ export default function Routes() {
     const [saving, setSaving] = useState(false);
     const [editingId, setEditingId] = useState(null);
     const [form, setForm] = useState(createRouteForm());
+    const [optimizationByRoute, setOptimizationByRoute] = useState({});
 
     const fetchRoutes = async () => {
         try {
@@ -125,6 +134,8 @@ export default function Routes() {
                     .map(stop => ({
                         stop_name: stop.stop_name || '',
                         location: stop.location || '',
+                        latitude: stop.latitude ?? '',
+                        longitude: stop.longitude ?? '',
                         stop_order: stop.stop_order || 1,
                     }))
                 : [createStop(1)],
@@ -146,12 +157,36 @@ export default function Routes() {
 
     const handleOptimize = async (route) => {
         try {
-            await optimizeRoute(route.id);
-            toast.success('Route optimized');
+            const response = await optimizeRoute(route.id);
+            const optimization = response.data?.optimization || null;
+            if (optimization) {
+                setOptimizationByRoute(previous => ({
+                    ...previous,
+                    [route.id]: optimization,
+                }));
+                const savedKm = Number(optimization.distance_saved_km || 0);
+                toast.success(
+                    savedKm > 0
+                        ? `Route optimized. Saved ${savedKm.toFixed(2)} km`
+                        : 'Route optimized and verified'
+                );
+            } else {
+                toast.success('Route optimized');
+            }
             await fetchRoutes();
         } catch (error) {
             toast.error(error.response?.data?.message || 'Failed to optimize route');
         }
+    };
+
+    const hasGpsCoordinates = (stops = []) =>
+        stops.length > 1 && stops.every(stop =>
+            Number.isFinite(Number(stop.latitude)) && Number.isFinite(Number(stop.longitude))
+        );
+
+    const formatKm = (value) => {
+        const numericValue = Number(value);
+        return Number.isFinite(numericValue) ? `${numericValue.toFixed(2)} km` : '—';
     };
 
     const totalStops = useMemo(() => routes.reduce((count, route) => count + (route.stops?.length || 0), 0), [routes]);
@@ -174,9 +209,9 @@ export default function Routes() {
                         <h3 className="font-semibold text-gray-800">
                             {editingId ? 'Edit Route' : 'Create Route'}
                         </h3>
-                    <span className="text-xs text-gray-500">
-                        Add stops in the order they should be visited
-                    </span>
+                        <span className="text-xs text-gray-500">
+                            Add stops in the order they should be visited
+                        </span>
                         {editingId && (
                             <button
                                 type="button"
@@ -238,7 +273,7 @@ export default function Routes() {
                                     )}
                                 </div>
 
-                                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                                <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
                                     <input
                                         type="number"
                                         min="1"
@@ -261,9 +296,28 @@ export default function Routes() {
                                         className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                                         placeholder="Location details (optional)"
                                     />
+                                    <input
+                                        type="number"
+                                        step="any"
+                                        value={stop.latitude}
+                                        onChange={e => handleStopChange(index, 'latitude', e.target.value)}
+                                        className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                        placeholder="Latitude"
+                                    />
+                                    <input
+                                        type="number"
+                                        step="any"
+                                        value={stop.longitude}
+                                        onChange={e => handleStopChange(index, 'longitude', e.target.value)}
+                                        className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                        placeholder="Longitude"
+                                    />
                                 </div>
                             </div>
                         ))}
+                        <p className="text-xs text-gray-500">
+                            Add latitude and longitude for each stop to enable the AI route optimizer.
+                        </p>
                     </div>
 
                     <button
@@ -298,6 +352,20 @@ export default function Routes() {
                                         <p className="text-sm text-gray-500 mt-1">
                                             Estimated time: {route.estimated_time || '—'} minutes
                                         </p>
+                                        <div className="mt-2 flex flex-wrap gap-2">
+                                            {hasGpsCoordinates(route.stops || []) ? (
+                                                <span className="text-xs font-medium rounded-full bg-emerald-50 text-emerald-700 px-3 py-1">
+                                                    GPS ready for optimization
+                                                </span>
+                                            ) : (
+                                                <span className="text-xs font-medium rounded-full bg-amber-50 text-amber-700 px-3 py-1">
+                                                    Add GPS coordinates to optimize
+                                                </span>
+                                            )}
+                                            <span className="text-xs font-medium rounded-full bg-blue-50 text-blue-700 px-3 py-1">
+                                                {route.stops?.length || 0} stops
+                                            </span>
+                                        </div>
                                         {route.fuel_estimate && route.fuel_estimate.distance_km > 0 && (
                                             <p className="text-xs text-gray-400 mt-1">
                                                 ⛽ {route.fuel_estimate.distance_km} km • {route.fuel_estimate.estimated_fuel_liters} L • KES {route.fuel_estimate.estimated_fuel_cost}
@@ -307,7 +375,8 @@ export default function Routes() {
                                     <div className="flex gap-2 shrink-0">
                                         <button
                                             onClick={() => handleOptimize(route)}
-                                            className="text-green-600 hover:text-green-800 text-sm font-medium"
+                                            disabled={!hasGpsCoordinates(route.stops || [])}
+                                            className="text-green-600 hover:text-green-800 text-sm font-medium disabled:opacity-40 disabled:cursor-not-allowed"
                                         >
                                             Optimize
                                         </button>
@@ -325,6 +394,60 @@ export default function Routes() {
                                         </button>
                                     </div>
                                 </div>
+
+                                {optimizationByRoute[route.id] && (
+                                    <div className="rounded-xl border border-emerald-200 bg-emerald-50/60 p-4 space-y-3">
+                                        <div className="flex items-center justify-between gap-3">
+                                            <div>
+                                                <h5 className="text-sm font-semibold text-emerald-900">AI optimization result</h5>
+                                                <p className="text-xs text-emerald-700">
+                                                    Engine: {optimizationByRoute[route.id].engine}
+                                                    {optimizationByRoute[route.id].preserve_last_stop ? ' • End stop preserved' : ''}
+                                                </p>
+                                            </div>
+                                            <span className="text-xs font-medium rounded-full bg-white text-emerald-700 px-3 py-1 border border-emerald-200">
+                                                {optimizationByRoute[route.id].evaluated_stops} stops
+                                            </span>
+                                        </div>
+
+                                        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-xs">
+                                            <div className="rounded-lg bg-white border border-emerald-100 p-3">
+                                                <div className="text-gray-500">Start stop</div>
+                                                <div className="font-semibold text-gray-900 mt-1">{optimizationByRoute[route.id].start_stop}</div>
+                                            </div>
+                                            <div className="rounded-lg bg-white border border-emerald-100 p-3">
+                                                <div className="text-gray-500">Before</div>
+                                                <div className="font-semibold text-gray-900 mt-1">
+                                                    {formatKm(optimizationByRoute[route.id].before?.estimated_road_distance_km)}
+                                                </div>
+                                            </div>
+                                            <div className="rounded-lg bg-white border border-emerald-100 p-3">
+                                                <div className="text-gray-500">After</div>
+                                                <div className="font-semibold text-gray-900 mt-1">
+                                                    {formatKm(optimizationByRoute[route.id].after?.estimated_road_distance_km)}
+                                                </div>
+                                            </div>
+                                            <div className="rounded-lg bg-white border border-emerald-100 p-3">
+                                                <div className="text-gray-500">Time saved</div>
+                                                <div className="font-semibold text-gray-900 mt-1">
+                                                    {optimizationByRoute[route.id].time_saved_minutes || 0} min
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        {(() => {
+                                            const optimization = optimizationByRoute[route.id];
+                                            const savedKm = Number(optimization.distance_saved_km || 0);
+                                            return (
+                                                <div className="text-xs text-emerald-800">
+                                                    {savedKm >= 0
+                                                        ? `Saved ${formatKm(savedKm)} across ${optimization.evaluated_stops} stops while keeping the route anchored for the demo.`
+                                                        : `Preserving the final stop added ${formatKm(Math.abs(savedKm))} while keeping the route anchored for the demo.`}
+                                                </div>
+                                            );
+                                        })()}
+                                    </div>
+                                )}
 
                                 <div className="flex flex-wrap gap-2">
                                     {(route.stops || []).length > 0 ? route.stops

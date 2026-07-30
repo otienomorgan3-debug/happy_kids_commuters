@@ -33,6 +33,7 @@ class Stop(BaseModel):
 
 class OptimizeRouteRequest(BaseModel):
     stops: List[Stop]
+    preserve_last_stop: bool = False
 
 class MultiBusRequest(BaseModel):
     stops: List[Stop]
@@ -70,7 +71,7 @@ def optimize_route(request: OptimizeRouteRequest):
         raise HTTPException(status_code=400, detail="No stops provided")
 
     stops = [s.dict() for s in request.stops]
-    optimized = nearest_neighbor_route(stops)
+    optimized = nearest_neighbor_route(stops, request.preserve_last_stop)
     total_distance = calculate_total_distance(optimized)
 
     # Calculate time estimate (assuming 25 km/h average in Nairobi)
@@ -81,6 +82,7 @@ def optimize_route(request: OptimizeRouteRequest):
         "optimized_route": optimized,
         "total_distance_km": total_distance,
         "estimated_duration_minutes": estimated_minutes,
+        "preserve_last_stop": request.preserve_last_stop,
         "message": f"Route optimized for {len(stops)} stops"
     }
 

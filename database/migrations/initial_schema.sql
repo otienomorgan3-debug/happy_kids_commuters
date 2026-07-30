@@ -1,7 +1,4 @@
--- HKCS Database Schema (Consolidated)
 -- Happy Kids Commuter System - Complete Database Schema
--- Run this in pgAdmin or psql to set up all tables, columns, indexes, and seed data
-
 -- ============================================================
 -- CORE TABLES
 -- ============================================================
@@ -49,7 +46,18 @@ CREATE TABLE IF NOT EXISTS drivers (
     id SERIAL PRIMARY KEY,
     user_id INT REFERENCES users(id) ON DELETE CASCADE,
     license_number VARCHAR(50) UNIQUE NOT NULL,
-    bus_id INT REFERENCES buses(id)
+    bus_id INT REFERENCES buses(id),
+    availability_status VARCHAR(20) NOT NULL DEFAULT 'available'
+        CHECK (availability_status IN ('available', 'unavailable', 'on_leave', 'sick', 'offline')),
+    dispatch_status VARCHAR(30) NOT NULL DEFAULT 'idle'
+        CHECK (dispatch_status IN ('idle', 'on_trip', 'reassignment_pending')),
+    availability_reason TEXT,
+    availability_until TIMESTAMP,
+    next_available_at TIMESTAMP,
+    is_dispatchable BOOLEAN NOT NULL DEFAULT TRUE,
+    last_status_update_at TIMESTAMP DEFAULT NOW(),
+    last_status_updated_by INT REFERENCES users(id),
+    updated_at TIMESTAMP DEFAULT NOW()
 );
 
 -- Students
@@ -94,7 +102,37 @@ CREATE TABLE IF NOT EXISTS trips (
     driver_id INT REFERENCES drivers(id),
     start_time TIMESTAMP,
     end_time TIMESTAMP,
-    status VARCHAR(20) DEFAULT 'pending' CHECK (status IN ('pending', 'active', 'completed'))
+    status VARCHAR(30) DEFAULT 'pending' CHECK (status IN ('pending', 'active', 'completed', 'delayed', 'reassignment_pending', 'cancelled')),
+    status_reason TEXT,
+    updated_at TIMESTAMP DEFAULT NOW()
+);
+
+-- Driver availability history
+CREATE TABLE IF NOT EXISTS driver_availability_history (
+    id SERIAL PRIMARY KEY,
+    driver_id INT NOT NULL REFERENCES drivers(id) ON DELETE CASCADE,
+    old_status VARCHAR(20) NOT NULL,
+    new_status VARCHAR(20) NOT NULL,
+    reason TEXT,
+    source VARCHAR(20) NOT NULL CHECK (source IN ('admin', 'driver', 'system')),
+    changed_by INT REFERENCES users(id),
+    trip_id INT REFERENCES trips(id),
+    bus_id INT REFERENCES buses(id),
+    created_at TIMESTAMP DEFAULT NOW()
+);
+
+-- Trip reassignment log
+CREATE TABLE IF NOT EXISTS trip_reassignment_log (
+    id SERIAL PRIMARY KEY,
+    trip_id INT NOT NULL REFERENCES trips(id) ON DELETE CASCADE,
+    old_driver_id INT REFERENCES drivers(id),
+    new_driver_id INT REFERENCES drivers(id),
+    bus_id INT REFERENCES buses(id),
+    route_id INT REFERENCES routes(id),
+    reason TEXT,
+    reassigned_by INT REFERENCES users(id),
+    notification_sent BOOLEAN NOT NULL DEFAULT FALSE,
+    created_at TIMESTAMP DEFAULT NOW()
 );
 
 -- Attendance
@@ -161,14 +199,19 @@ CREATE TABLE IF NOT EXISTS bus_locations (
     recorded_at TIMESTAMP DEFAULT NOW()
 );
 
--- Chat messages table for parent-driver/admin communication
+-- Persisted one-to-one messages between parents, drivers and administrators.
 CREATE TABLE IF NOT EXISTS chat_messages (
     id SERIAL PRIMARY KEY,
     sender_id INTEGER NOT NULL REFERENCES users(id),
-    receiver_id INTEGER REFERENCES users(id), -- NULL if broadcast to all admins
+    receiver_id INTEGER NOT NULL REFERENCES users(id),
     message TEXT NOT NULL,
-    chat_type VARCHAR(20) NOT NULL DEFAULT 'parent_driver' CHECK (chat_type IN ('parent_driver', 'parent_admin')),
+    chat_type VARCHAR(20) NOT NULL DEFAULT 'parent_driver' CHECK (chat_type IN (
+        'parent_driver', 'parent_admin', 'driver_parent',
+        'driver_admin', 'admin_parent', 'admin_driver'
+    )),
     trip_id INTEGER REFERENCES trips(id),
+    sender_name VARCHAR(100),
+    sender_role VARCHAR(20),
     is_read BOOLEAN DEFAULT false,
     created_at TIMESTAMP DEFAULT NOW()
 );
@@ -288,6 +331,9 @@ CREATE INDEX IF NOT EXISTS idx_payments_checkout_request_id ON payments(checkout
 CREATE INDEX IF NOT EXISTS idx_chat_messages_sender ON chat_messages(sender_id);
 CREATE INDEX IF NOT EXISTS idx_chat_messages_receiver ON chat_messages(receiver_id);
 CREATE INDEX IF NOT EXISTS idx_chat_messages_trip ON chat_messages(trip_id);
+CREATE INDEX IF NOT EXISTS idx_chat_messages_sender_receiver ON chat_messages(sender_id, receiver_id);
+CREATE INDEX IF NOT EXISTS idx_chat_messages_created_at ON chat_messages(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_chat_messages_participants_created ON chat_messages(sender_id, receiver_id, created_at DESC);
 
 -- Absence request indexes
 CREATE INDEX IF NOT EXISTS idx_absence_requests_student ON absence_requests(student_id);
@@ -317,6 +363,10 @@ CREATE INDEX IF NOT EXISTS idx_emergency_alerts_driver ON emergency_alerts(drive
 
 -- Route stops index
 CREATE INDEX IF NOT EXISTS idx_route_stops_location ON route_stops(route_id, stop_order);
+CREATE INDEX IF NOT EXISTS idx_drivers_availability_status ON drivers(availability_status);
+CREATE INDEX IF NOT EXISTS idx_drivers_dispatch_status ON drivers(dispatch_status);
+CREATE INDEX IF NOT EXISTS idx_driver_availability_history_driver ON driver_availability_history(driver_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_trip_reassignment_log_trip ON trip_reassignment_log(trip_id, created_at DESC);
 
 -- ============================================================
 -- DATA MIGRATIONS (idempotent updates)

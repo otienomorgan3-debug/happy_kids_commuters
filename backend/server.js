@@ -15,7 +15,14 @@ const adminRoutes = require('./routes/admin');
 const advancedFeaturesRoutes = require('./routes/advancedFeatures');
 const parentActionsRoutes = require('./routes/parentActions');
 const { apiLimiter, authLimiter, paymentLimiter, securityHeaders, sanitizeInput } = require('./middleware/security');
-const { setIO, setConnectedUsers } = require('./services/socketService');
+const {
+  setIO,
+  setConnectedUsers,
+  setUserSockets,
+  addUserSocket,
+  removeUserSocket,
+  isUserOnline
+} = require('./services/socketService');
 require('./config/db');
 
 const app = express();
@@ -24,8 +31,10 @@ const io = new Server(server, { cors: { origin: '*' } });
 
 // Store connected users with their socket IDs
 const connectedUsers = {};
+const userSockets = {};
 setIO(io);
 setConnectedUsers(connectedUsers);
+setUserSockets(userSockets);
 
 // Security middleware
 app.use(securityHeaders);
@@ -58,8 +67,17 @@ io.on('connection', (socket) => {
 
   // User registers their socket (call this on app login)
   socket.on('user:register', (data) => {
-    connectedUsers[data.user_id] = socket.id;
-    console.log(`User ${data.user_id} registered with socket ${socket.id}`);
+    const userId = String(data.user_id);
+    if (!userId) return;
+
+    const wasOffline = addUserSocket(userId, socket.id);
+    socket.data.userId = userId;
+    socket.join(`user:${userId}`);
+    console.log(`User ${userId} registered with socket ${socket.id}`);
+
+    if (wasOffline) {
+      io.emit('user:online', { user_id: userId, online: true });
+    }
   });
 
   // Driver joins their bus room
@@ -97,13 +115,33 @@ io.on('connection', (socket) => {
     });
   });
 
-  // Chat message (real-time relay)
+  // Chat messages are written through the authenticated HTTP API before being
+  // broadcast. Keep this event as a no-op for older clients; never relay an
+  // unsaved client payload.
   socket.on('chat:send', (data) => {
-    const { receiver_id } = data;
-    if (receiver_id && connectedUsers[receiver_id]) {
-      io.to(connectedUsers[receiver_id]).emit('chat:message', {
-        ...data,
-        created_at: new Date().toISOString(),
+    socket.emit('chat:error', { message: 'Send messages through the API so they are saved.' });
+  });
+
+  // Mark messages as read in real-time
+  socket.on('chat:mark_read', (data) => {
+    const { other_user_id } = data;
+    const userId = userSockets[socket.id];
+    if (userId && other_user_id) {
+      io.to(`user:${other_user_id}`).emit('chat:read', {
+        read_by: userId,
+        other_user_id,
+      });
+    }
+  });
+
+  // User typing indicator
+  socket.on('chat:typing', (data) => {
+    const { receiver_id, is_typing } = data;
+    const userId = userSockets[socket.id];
+    if (receiver_id && userId) {
+      io.to(`user:${receiver_id}`).emit('chat:typing', {
+        user_id: userId,
+        is_typing,
       });
     }
   });
@@ -121,12 +159,13 @@ io.on('connection', (socket) => {
   });
 
   socket.on('disconnect', () => {
-    Object.keys(connectedUsers).forEach(user_id => {
-      if (connectedUsers[user_id] === socket.id) {
-        delete connectedUsers[user_id];
-      }
-    });
+    const userId = removeUserSocket(socket.id) || socket.data.userId;
     console.log('Device disconnected:', socket.id);
+
+    // Notify that user is offline
+    if (userId && !isUserOnline(userId)) {
+      io.emit('user:online', { user_id: userId, online: false });
+    }
   });
 });
 

@@ -3,20 +3,32 @@ import {
   TouchableOpacity, RefreshControl, ActivityIndicator
 } from 'react-native';
 import { moderateScale, scale, verticalScale, SCREEN_WIDTH, dynamicFontSize } from '../../utils/responsive';
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'expo-router';
-import { getSchedulePreview } from '../../constants/api';
+import { io } from 'socket.io-client';
+import { SOCKET_URL, getSchedulePreview, getParentTripStatus } from '../../constants/api';
 
 export default function SchedulePreview() {
   const [schedule, setSchedule] = useState([]);
+  const [tripStatuses, setTripStatuses] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const router = useRouter();
+  const socketRef = useRef(null);
 
   const fetchSchedule = useCallback(async () => {
     try {
-      const res = await getSchedulePreview();
-      setSchedule(res.data.schedule || []);
+      const [scheduleRes, statusRes] = await Promise.allSettled([
+        getSchedulePreview(),
+        getParentTripStatus()
+      ]);
+
+      if (scheduleRes.status === 'fulfilled') {
+        setSchedule(scheduleRes.value.data.schedule || []);
+      }
+      if (statusRes.status === 'fulfilled') {
+        setTripStatuses(statusRes.value.data?.trip_statuses || []);
+      }
     } catch (err) {
       console.error(err);
     } finally {
@@ -26,11 +38,34 @@ export default function SchedulePreview() {
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
-    await fetchSchedule();
-    setRefreshing(false);
+    try {
+      await fetchSchedule();
+    } finally {
+      setRefreshing(false);
+    }
   }, [fetchSchedule]);
 
   useEffect(() => { fetchSchedule(); }, [fetchSchedule]);
+
+  useEffect(() => {
+    socketRef.current = io(SOCKET_URL);
+    const socket = socketRef.current;
+
+    const refreshLiveData = () => {
+      fetchSchedule();
+    };
+
+    socket.on('trip:reassignment_needed', refreshLiveData);
+    socket.on('trip:reassigned', refreshLiveData);
+    socket.on('driver:availability_changed', refreshLiveData);
+
+    return () => {
+      socket.off('trip:reassignment_needed', refreshLiveData);
+      socket.off('trip:reassigned', refreshLiveData);
+      socket.off('driver:availability_changed', refreshLiveData);
+      socket.disconnect();
+    };
+  }, [fetchSchedule]);
 
   const formatDate = (dateStr) => {
     if (!dateStr) return '—';
@@ -44,6 +79,61 @@ export default function SchedulePreview() {
     return d.toLocaleTimeString('en-KE', { hour: '2-digit', minute: '2-digit' });
   };
 
+  const tripStatusCard = (() => {
+    const [topStatus] = tripStatuses;
+
+    if (!topStatus) {
+      return {
+        state: 'clear',
+        title: 'Trip status is normal',
+        message: 'Your children’s routes are currently running on schedule.',
+        routeName: null,
+        driverName: null,
+        busPlate: null,
+      };
+    }
+
+    const affectedStudents = topStatus.affected_students || [];
+    const childLabel = affectedStudents.length === 1
+      ? '1 child affected'
+      : `${affectedStudents.length} children affected`;
+
+    if (topStatus.card_state === 'delayed') {
+      return {
+        state: 'delayed',
+        title: 'Trip delayed',
+        message: topStatus.reassignment_reason
+          ? `${topStatus.route_name} is waiting for a replacement driver. ${childLabel}. Reason: ${topStatus.reassignment_reason}.`
+          : `${topStatus.route_name} is waiting for a replacement driver. ${childLabel}.`,
+        routeName: topStatus.route_name,
+        driverName: topStatus.driver_name,
+        busPlate: topStatus.plate_number,
+      };
+    }
+
+    if (topStatus.card_state === 'reassigned') {
+      return {
+        state: 'reassigned',
+        title: 'Driver reassigned',
+        message: topStatus.new_driver_name
+          ? `${topStatus.route_name} now has ${topStatus.new_driver_name} assigned. ${childLabel}.`
+          : `${topStatus.route_name} has been reassigned and is back in motion. ${childLabel}.`,
+        routeName: topStatus.route_name,
+        driverName: topStatus.new_driver_name || topStatus.driver_name,
+        busPlate: topStatus.plate_number,
+      };
+    }
+
+    return {
+      state: 'clear',
+      title: 'Trip back on schedule',
+      message: `${topStatus.route_name} is running normally again. ${childLabel}.`,
+      routeName: topStatus.route_name,
+      driverName: topStatus.driver_name,
+      busPlate: topStatus.plate_number,
+    };
+  })();
+
   return (
     <ScrollView
       style={styles.container}
@@ -53,7 +143,31 @@ export default function SchedulePreview() {
         <TouchableOpacity onPress={() => router.back()}>
           <Text style={styles.backButton}>← Back</Text>
         </TouchableOpacity>
-        <Text style={styles.title}>Schedule Preview</Text>
+        <Text style={styles.title}>My Children’s Schedule</Text>
+      </View>
+
+      <View style={[
+        styles.tripAlertCard,
+        tripStatusCard.state === 'delayed'
+          ? styles.tripAlertDelayed
+          : tripStatusCard.state === 'reassigned'
+            ? styles.tripAlertReassigned
+            : styles.tripAlertNormal
+      ]}>
+        <Text style={styles.tripAlertLabel}>Live Trip Status</Text>
+        <Text style={styles.tripAlertTitle}>{tripStatusCard.title}</Text>
+        <Text style={styles.tripAlertMessage}>{tripStatusCard.message}</Text>
+        <View style={styles.tripAlertMetaRow}>
+          {!!tripStatusCard.routeName && (
+            <Text style={styles.tripAlertMeta} numberOfLines={1}>Route: {tripStatusCard.routeName}</Text>
+          )}
+          {!!tripStatusCard.busPlate && (
+            <Text style={styles.tripAlertMeta} numberOfLines={1}>Bus: {tripStatusCard.busPlate}</Text>
+          )}
+        </View>
+        {!!tripStatusCard.driverName && (
+          <Text style={styles.tripAlertMeta} numberOfLines={1}>Driver: {tripStatusCard.driverName}</Text>
+        )}
       </View>
 
       {loading ? (
@@ -63,8 +177,8 @@ export default function SchedulePreview() {
       ) : schedule.length === 0 ? (
         <View style={styles.emptyCard}>
           <Text style={styles.emptyEmoji}>📋</Text>
-          <Text style={styles.emptyTitle}>No upcoming trips</Text>
-          <Text style={styles.emptySub}>Schedule preview will appear here when trips are planned.</Text>
+          <Text style={styles.emptyTitle}>No upcoming trips for your children</Text>
+          <Text style={styles.emptySub}>Routes appear here only when they include one of your children’s pickup points.</Text>
         </View>
       ) : (
         <View style={styles.list}>
@@ -78,8 +192,6 @@ export default function SchedulePreview() {
                   </Text>
                 </View>
               </View>
-              <Text style={styles.detail}>🚌 Bus: {item.plate_number}</Text>
-              <Text style={styles.detail}>👨‍✈️ Driver: {item.driver_name}</Text>
               <Text style={styles.detail}>👶 Child: {item.student_name}</Text>
               <Text style={styles.detail}>📍 Pickup: {item.pickup_location}</Text>
               <View style={styles.timeRow}>
@@ -105,6 +217,60 @@ const styles = StyleSheet.create({
   },
   backButton: { color: '#fff', fontSize: dynamicFontSize(14, 15, 16), fontWeight: '600' },
   title: { color: '#fff', fontSize: dynamicFontSize(20, 21, 22), fontWeight: 'bold' },
+  tripAlertCard: {
+    marginHorizontal: scale(16),
+    marginTop: verticalScale(16),
+    marginBottom: verticalScale(10),
+    borderRadius: verticalScale(16),
+    padding: verticalScale(16),
+    backgroundColor: '#fff',
+    shadowColor: '#000',
+    shadowOpacity: 0.05,
+    shadowRadius: verticalScale(8),
+    elevation: 2,
+  },
+  tripAlertNormal: {
+    borderLeftWidth: scale(5),
+    borderLeftColor: '#16a34a',
+  },
+  tripAlertDelayed: {
+    borderLeftWidth: scale(5),
+    borderLeftColor: '#f59e0b',
+  },
+  tripAlertReassigned: {
+    borderLeftWidth: scale(5),
+    borderLeftColor: '#2563eb',
+  },
+  tripAlertLabel: {
+    fontSize: dynamicFontSize(10, 11, 12),
+    fontWeight: '800',
+    color: '#718096',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    marginBottom: verticalScale(4),
+  },
+  tripAlertTitle: {
+    fontSize: dynamicFontSize(16, 17, 18),
+    fontWeight: '800',
+    color: '#1f2937',
+  },
+  tripAlertMessage: {
+    fontSize: dynamicFontSize(12, 13, 14),
+    color: '#4a5568',
+    marginTop: verticalScale(6),
+    lineHeight: moderateScale(18),
+  },
+  tripAlertMetaRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: scale(8),
+    marginTop: verticalScale(10),
+  },
+  tripAlertMeta: {
+    fontSize: dynamicFontSize(11, 12, 13),
+    color: '#2d3748',
+    fontWeight: '600',
+  },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: scale(32) },
   emptyCard: {
     backgroundColor: '#fff', borderRadius: moderateScale(16), padding: scale(32),
