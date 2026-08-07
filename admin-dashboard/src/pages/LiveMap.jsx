@@ -3,6 +3,7 @@ import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
 import { io } from 'socket.io-client';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
+import { getAllBusLocations } from '../api/api';
 
 // Fix default marker icons for Leaflet with Vite
 delete L.Icon.Default.prototype._getIconUrl;
@@ -27,6 +28,30 @@ export default function LiveMap() {
 
     useEffect(() => {
         const socket = io('http://localhost:5000');
+
+        // Fetch current active bus locations once on mount
+        (async () => {
+            try {
+                const res = await getAllBusLocations();
+                const list = res.data.buses || [];
+                const map = {};
+                list.forEach(b => {
+                    map[b.bus_id] = {
+                        bus_id: b.bus_id,
+                        latitude: b.latitude,
+                        longitude: b.longitude,
+                        timestamp: b.recorded_at || new Date().toISOString(),
+                        plate_number: b.plate_number,
+                        driver_name: b.driver_name
+                    };
+                    // subscribe to room for live updates
+                    socket.emit('parent:watch', { bus_id: b.bus_id });
+                });
+                setBusLocations(map);
+            } catch (err) {
+                console.error('Failed to load initial bus locations', err?.response || err);
+            }
+        })();
 
         socket.on('connect', () => {
             setConnected(true);

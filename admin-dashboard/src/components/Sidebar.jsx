@@ -3,7 +3,6 @@ import { useAuth } from '../context/useAuth';
 
 const links = [
     { to: '/dashboard', label: 'Dashboard' },
-    { to: '/schools', label: 'Schools' },
     { to: '/students', label: 'Students' },
     { to: '/parents', label: 'Parents' },
     { to: '/drivers', label: 'Drivers' },

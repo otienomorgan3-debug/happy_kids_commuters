@@ -11,7 +11,6 @@ import Parents from './pages/Parents';
 import Drivers from './pages/Drivers';
 import Buses from './pages/Buses';
 import RoutesPage from './pages/Routes';
-import Schools from './pages/Schools';
 import Payments from './pages/Payments';
 import Analytics from './pages/Analytics';
 import Incidents from './pages/Incidents';
@@ -35,7 +34,6 @@ function ProtectedLayout() {
       <main className="flex-1 overflow-auto">
         <Routes>
           <Route path="/dashboard" element={<Dashboard />} />
-          <Route path="/schools" element={<Schools />} />
           <Route path="/students" element={<Students />} />
           <Route path="/parents" element={<Parents />} />
           <Route path="/drivers" element={<Drivers />} />

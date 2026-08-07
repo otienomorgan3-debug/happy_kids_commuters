@@ -161,7 +161,8 @@ const updateDriverAvailability = async (req, res) => {
          : { rows: [] };
        const pendingTrip = pendingTripRes.rows[0] || null;
 
-       if (pendingTrip && pendingTrip.new_driver_id === null) {
+       const willResumeTrip = requestedStatus === 'available' && pendingTrip && pendingTrip.new_driver_id === null;
+       if (willResumeTrip) {
          await client.query(
            `UPDATE trips
               SET status = 'active',
@@ -172,7 +173,9 @@ const updateDriverAvailability = async (req, res) => {
          );
        }
 
-       const dispatchStatus = activeTrip && requestedStatus !== 'available' ? 'reassignment_pending' : 'idle';
+       const dispatchStatus = willResumeTrip
+         ? 'on_trip'
+         : (activeTrip && requestedStatus !== 'available' ? 'reassignment_pending' : 'idle');
        const isDispatchable = requestedStatus === 'available';
        const nextAvailableAt = requestedStatus === 'available' ? new Date() : (availabilityUntil || null);
 

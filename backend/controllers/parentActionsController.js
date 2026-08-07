@@ -487,6 +487,7 @@ const getParentTripStatus = async (req, res) => {
          SELECT DISTINCT ON (t.route_id)
            t.id,
            t.route_id,
+           r.route_name,
            t.bus_id,
            t.driver_id,
            t.status,
@@ -498,6 +499,7 @@ const getParentTripStatus = async (req, res) => {
            u.name AS driver_name,
            u.phone AS driver_phone
          FROM trips t
+         LEFT JOIN routes r ON r.id = t.route_id
          LEFT JOIN buses b ON b.id = t.bus_id
          LEFT JOIN drivers d ON d.id = t.driver_id
          LEFT JOIN users u ON u.id = d.user_id

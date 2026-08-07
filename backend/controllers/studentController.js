@@ -1,4 +1,5 @@
 const pool = require('../config/db');
+const { DEFAULT_SCHOOL_ID } = require('../config/appConfig');
 
 const getSchoolsForParent = async (req, res) => {
   try {
@@ -15,7 +16,8 @@ const getSchoolsForParent = async (req, res) => {
 
 // Add a new student (parent adds their child)
 const addStudent = async (req, res) => {
-  const { name, school_id, pickup_location, dropoff_location } = req.body;
+  const { name, pickup_location, dropoff_location } = req.body;
+  const school_id = Number(req.body.school_id) || DEFAULT_SCHOOL_ID;
   const user_id = req.user.id;
 
   try {

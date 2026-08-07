@@ -24,6 +24,7 @@ const {
   isUserOnline
 } = require('./services/socketService');
 require('./config/db');
+const pool = require('./config/db');
 
 const app = express();
 const server = http.createServer(app);
@@ -87,15 +88,41 @@ io.on('connection', (socket) => {
   });
 
   // Driver sends GPS update
-  socket.on('driver:location', (data) => {
+  socket.on('driver:location', async (data) => {
     const { bus_id, latitude, longitude } = data;
     console.log(`Bus ${bus_id} location: ${latitude}, ${longitude}`);
-    io.to(`bus_${bus_id}`).emit('bus:location', {
+    const payload = {
       bus_id,
       latitude,
       longitude,
       timestamp: new Date().toISOString()
-    });
+    };
+
+    // Emit to the specific bus room (for subscribed clients)
+    io.to(`bus_${bus_id}`).emit('bus:location', payload);
+    // Also emit globally as a fallback so dashboards that are not
+    // joined to the room receive updates (helps admin dashboard)
+    io.emit('bus:location', payload);
+
+    // Persist latest location to DB so HTTP callers can fetch initial state
+    try {
+      // Try to map socket user -> drivers.id if available
+      const userId = socket.data.userId ? Number(socket.data.userId) : null;
+      let driverId = null;
+      if (userId) {
+        const drv = await pool.query('SELECT id FROM drivers WHERE user_id = $1', [userId]);
+        if (drv.rows[0]) driverId = drv.rows[0].id;
+      }
+
+      await pool.query(
+        `INSERT INTO bus_locations (bus_id, driver_id, latitude, longitude, recorded_at)
+         VALUES ($1, $2, $3, $4, NOW())
+         ON CONFLICT (bus_id) DO UPDATE SET latitude = $3, longitude = $4, recorded_at = NOW()`,
+        [bus_id, driverId, latitude, longitude]
+      );
+    } catch (err) {
+      console.error('Failed to persist bus location from socket:', err.message || err);
+    }
   });
 
   // Parent watches a bus

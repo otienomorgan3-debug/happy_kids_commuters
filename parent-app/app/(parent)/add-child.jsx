@@ -3,16 +3,13 @@ import {
   Alert, ActivityIndicator, ScrollView, KeyboardAvoidingView,
   Platform, SafeAreaView
 } from 'react-native';
-import { moderateScale, scale, verticalScale, SCREEN_WIDTH, dynamicFontSize } from '../../utils/responsive';
-import { useEffect, useState } from 'react';
+import { moderateScale, scale, verticalScale, dynamicFontSize } from '../../utils/responsive';
+import { useState } from 'react';
 import { useRouter } from 'expo-router';
-import { addStudent, getSchools } from '../../constants/api';
+import { addStudent } from '../../constants/api';
 
 export default function AddChild() {
-  const [schools, setSchools] = useState([]);
-  const [loadingSchools, setLoadingSchools] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [selectedSchoolId, setSelectedSchoolId] = useState('');
   const [form, setForm] = useState({
     name: '',
     pickup_location: '',
@@ -20,26 +17,8 @@ export default function AddChild() {
   });
   const router = useRouter();
 
-  useEffect(() => {
-    const loadSchools = async () => {
-      try {
-        const res = await getSchools();
-        setSchools(res.data.schools || []);
-        if (res.data.schools?.length > 0) {
-          setSelectedSchoolId(String(res.data.schools[0].id));
-        }
-      } catch (error) {
-        Alert.alert('Error', error.response?.data?.message || 'Failed to load schools');
-      } finally {
-        setLoadingSchools(false);
-      }
-    };
-
-    loadSchools();
-  }, []);
-
   const handleSave = async () => {
-    if (!form.name || !selectedSchoolId || !form.pickup_location || !form.dropoff_location) {
+    if (!form.name || !form.pickup_location || !form.dropoff_location) {
       return Alert.alert('Missing fields', 'Please fill in all fields before saving.');
     }
 
@@ -47,7 +26,6 @@ export default function AddChild() {
     try {
       await addStudent({
         name: form.name,
-        school_id: Number(selectedSchoolId),
         pickup_location: form.pickup_location,
         dropoff_location: form.dropoff_location,
       });
@@ -87,34 +65,6 @@ export default function AddChild() {
               placeholderTextColor="#a0aec0"
             />
 
-            <Text style={styles.label}>School</Text>
-            {loadingSchools ? (
-              <View style={styles.loadingBox}>
-                <ActivityIndicator color="#4a6fa5" />
-              </View>
-            ) : schools.length === 0 ? (
-              <View style={styles.emptyBox}>
-                <Text style={styles.emptyText}>No schools available yet.</Text>
-              </View>
-            ) : (
-              <View style={styles.schoolList}>
-                {schools.map((school) => {
-                  const isSelected = String(school.id) === selectedSchoolId;
-                  return (
-                    <TouchableOpacity
-                      key={school.id}
-                      style={[styles.schoolChip, isSelected && styles.schoolChipSelected]}
-                      onPress={() => setSelectedSchoolId(String(school.id))}
-                    >
-                      <Text style={[styles.schoolChipText, isSelected && styles.schoolChipTextSelected]}>
-                        {school.school_name}
-                      </Text>
-                    </TouchableOpacity>
-                  );
-                })}
-              </View>
-            )}
-
             <Text style={styles.label}>Pickup Location</Text>
             <TextInput
               style={styles.input}
@@ -136,7 +86,7 @@ export default function AddChild() {
             <TouchableOpacity
               style={[styles.button, saving && styles.buttonDisabled]}
               onPress={handleSave}
-              disabled={saving || loadingSchools}
+              disabled={saving}
             >
               {saving ? (
                 <ActivityIndicator color="#fff" />

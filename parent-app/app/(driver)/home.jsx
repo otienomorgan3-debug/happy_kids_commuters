@@ -29,6 +29,7 @@ export default function DriverHome() {
   const [availabilitySaving, setAvailabilitySaving] = useState(false);
   const socketRef = useRef(null);
   const pendingJoinBusIdRef = useRef(null);
+  const driverIdRef = useRef(null);
   const locationRef = useRef(null);
   const router = useRouter();
   const tripIsActive = trip?.status === 'active';
@@ -65,6 +66,9 @@ export default function DriverHome() {
       const assignmentRes = await getMyAssignment();
       const assignmentData = assignmentRes.data?.assignment || null;
       setAssignment(assignmentData);
+      if (assignmentData?.driver_id) {
+        driverIdRef.current = assignmentData.driver_id;
+      }
       if (assignmentData?.trip_id) {
         setTrip({
           id: assignmentData.trip_id,
@@ -117,8 +121,20 @@ export default function DriverHome() {
     socketRef.current.on('connect_error', (err) => {
       console.log('Socket connect error', err.message);
     });
+    socketRef.current.on('driver:availability_changed', (payload) => {
+      if (payload?.driver_id && payload.driver_id === driverIdRef.current) {
+        fetchAssignment();
+      }
+    });
+    socketRef.current.on('trip:resumed', (payload) => {
+      if (payload?.driver_id && payload.driver_id === driverIdRef.current) {
+        fetchAssignment();
+      }
+    });
     requestLocationPermission();
     return () => {
+      socketRef.current?.off('driver:availability_changed');
+      socketRef.current?.off('trip:resumed');
       socketRef.current?.disconnect();
       if (locationRef.current) locationRef.current.remove();
     };
@@ -237,6 +253,19 @@ export default function DriverHome() {
         availability_status: status,
         reason,
       });
+
+      setAssignment(prev => prev ? ({
+        ...prev,
+        availability_status: status,
+        dispatch_status: status === 'available' ? 'idle' : prev.dispatch_status,
+        availability_reason: status === 'available' ? reason : prev.availability_reason,
+        availability_until: status === 'available' ? null : prev.availability_until,
+      }) : prev);
+
+      if (status === 'available') {
+        setTrip(null);
+      }
+
       await fetchAssignment();
       Alert.alert('Status updated', `You are now marked as ${status.replace('_', ' ')}`);
     } catch (err) {

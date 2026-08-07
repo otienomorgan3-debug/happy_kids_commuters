@@ -55,7 +55,6 @@ export const getMyStudents = () => API.get('/students/my');
 export const getAssignedStudents = () => API.get('/students/assigned');
 
 // Students
-export const getSchools = () => API.get('/students/schools');
 export const addStudent = (data) => API.post('/students', data);
 
 // Attendance / driver
