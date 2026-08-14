@@ -89,24 +89,28 @@ const register = async (req, res) => {
 
 // LOGIN
 const login = async (req, res) => {
-  const { email, password } = req.body;
+  // Accept either `email` or `phone` (or a generic `identifier`) from clients.
+  // Many web clients let users sign in with phone numbers; support both here.
+  const { email, password, phone, identifier } = req.body;
+  const loginId = email || phone || identifier;
 
   try {
     // Validate request first
     if (!password) return res.status(400).json({ message: 'Password required' });
 
-    // Find user by email. Support both SQL pool and mocked User model used in tests
+    // Find user by email OR phone. Support both SQL pool and mocked User model used in tests
     let user = null;
     let usedUserModel = false;
     if (pool && typeof pool.query === 'function') {
-      const result = await pool.query('SELECT * FROM users WHERE email = $1', [email]);
+      const result = await pool.query('SELECT * FROM users WHERE email = $1 OR phone = $1', [loginId]);
       if (!result || !result.rows || result.rows.length === 0) {
         return res.status(401).json({ message: 'Invalid credentials' });
       }
       user = result.rows[0];
     } else {
       const User = require('../models/User');
-      user = await User.findByEmail(email);
+      // Fall back to the existing helper used in tests
+      user = await User.findByEmail(email || loginId);
       usedUserModel = true;
       if (!user) return res.status(401).json({ message: 'Invalid credentials' });
     }

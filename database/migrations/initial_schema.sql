@@ -1,7 +1,4 @@
--- Happy Kids Commuter System - Complete Database Schema
--- ============================================================
 -- CORE TABLES
--- ============================================================
 
 -- Users (all roles: parent, driver, admin)
 CREATE TABLE IF NOT EXISTS users (
@@ -187,9 +184,7 @@ CREATE TABLE IF NOT EXISTS emergency_alerts (
     created_at TIMESTAMP DEFAULT NOW()
 );
 
--- ============================================================
 -- CHAT & PARENT ACTIONS TABLES
--- ============================================================
 
 -- Bus live locations (latest GPS coordinates per bus)
 CREATE TABLE IF NOT EXISTS bus_locations (
@@ -242,9 +237,8 @@ CREATE TABLE IF NOT EXISTS pickup_change_requests (
     created_at TIMESTAMP DEFAULT NOW()
 );
 
--- ============================================================
+
 -- ADVANCED FEATURES TABLES
--- ============================================================
 
 -- Geofences table
 CREATE TABLE IF NOT EXISTS geofences (
@@ -319,9 +313,7 @@ CREATE TABLE IF NOT EXISTS offline_sync_queue (
     synced_at TIMESTAMP
 );
 
--- ============================================================
 -- INDEXES
--- ============================================================
 
 -- Payment indexes
 CREATE INDEX IF NOT EXISTS idx_payments_parent_created_at ON payments(parent_id, created_at DESC);
@@ -369,9 +361,7 @@ CREATE INDEX IF NOT EXISTS idx_drivers_dispatch_status ON drivers(dispatch_statu
 CREATE INDEX IF NOT EXISTS idx_driver_availability_history_driver ON driver_availability_history(driver_id, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_trip_reassignment_log_trip ON trip_reassignment_log(trip_id, created_at DESC);
 
--- ============================================================
--- DATA MIGRATIONS (idempotent updates)
--- ============================================================
+-- DATA MIGRATIONS
 
 -- Set is_active to TRUE for existing users where NULL
 UPDATE users SET is_active = TRUE WHERE is_active IS NULL;
@@ -384,9 +374,7 @@ ALTER TABLE chat_messages ADD COLUMN IF NOT EXISTS sender_name VARCHAR(100);
 ALTER TABLE chat_messages ADD COLUMN IF NOT EXISTS sender_role VARCHAR(20);
 
 
--- ============================================================
 -- COMMENTS
--- ============================================================
 
 COMMENT ON COLUMN users.is_active IS 'Whether the user account is active';
 COMMENT ON COLUMN emergency_alerts.driver_id IS 'Reference to the driver who triggered the alert';
