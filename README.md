@@ -35,8 +35,8 @@ HKCS is a full-stack platform that simplifies school commute management. Parents
 
 ```bash
 # 1. Clone the repo
-git clone https://github.com/donnellyCodes/happy_kids_commuter_system.git
-cd happy_kids_commuter_system
+git clone https://github.com/otienomorgan3-debug/happy_kids_commuters.git
+cd happy_kids_commuters
 
 # 2. Start everything
 docker compose up -d --build
